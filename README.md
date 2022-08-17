@@ -1,11 +1,6 @@
-## My Project
+## Amazon Chime SDK for C++
 
-TODO: Fill this README out!
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
+See [Amazon Chime SDK for C++ Signaling Client](chime-sdk-signaling-cpp/README.md)
 
 ## Security
 

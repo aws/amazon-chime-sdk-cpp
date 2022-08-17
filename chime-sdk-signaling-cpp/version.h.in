@@ -1,0 +1,8 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#ifndef CHIME_VERSION_H_
+#define CHIME_VERSION_H_
+
+#define PROJECT_NAME "@PROJECT_NAME@"
+#define PROJECT_VERSION "@PROJECT_VERSION@"
+
+#endif  // CHIME_VERSION_H_
