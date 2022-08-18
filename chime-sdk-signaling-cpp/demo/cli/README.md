@@ -1,36 +1,37 @@
 # Amazon Chime SDK for C++ Signaling Client Demo Application
 
-> Note: This documentation is written with Amazon Linux 2 and M99 WebRTC.
+> Note: This documentation is written with Ubuntu 18.04 (x86_64) and M99 WebRTC.
 
 ## Building Demo Application
 
-### 1. Create Amazon Linux 2 EC2 Instance 
+### 1. Create Ubuntu 18.04 (x86_64) EC2 Instance 
 
-Use [EC2](https://aws.amazon.com/ec2/) to create [AL2](https://aws.amazon.com/amazon-linux-2/?amazon-linux-whats-new.sort-by=item.additionalFields.postDateTime&amazon-linux-whats-new.sort-order=desc) instance.
+Use [EC2](https://aws.amazon.com/ec2/) to create [Ubuntu](https://ubuntu.com/aws) instance.
 
 Make sure to give at least 100 GB of storage.
 
 ### 2. Install necessary library for WebRTC
 
-Most of libraries are excerpted from [WebRTC Development Prerequisite](https://chromium.googlesource.com/chromium/src/+/master/docs/linux/build_instructions.md)
+This is excerpted from [WebRTC Development Prerequisite](https://webrtc.github.io/webrtc-org/native-code/development/prerequisite-sw/)
 
 ```
-sudo yum install bzip2 pkgconfig alsa-lib-devel atk-devel -y &&\
-sudo yum install bison binutils brlapi-devel bluez-libs-devel bzip2-devel cairo-devel -y &&\
-sudo yum install cups-devel dbus-devel dbus-glib-devel expat-devel fontconfig-devel -y &&\
-sudo yum install freetype-devel gcc-c++ glib2-devel glibc.i686 gperf glib2-devel -y &&\
-sudo yum install gtk3-devel libatomic libcap-devel libffi-devel -y &&\
-sudo yum install libgcc.i686 libgnome-keyring-devel libjpeg-devel libstdc++.i686 libX11-devel -y &&\
-sudo yum install libXScrnSaver-devel libXtst-devel libxkbcommon-x11-devel ncurses-compat-libs -y &&\
-sudo yum install pulseaudio-libs-devel zlib.i686 httpd mod_ssl php php-cli python-psutil -y &&\
-sudo yum install xorg-x11-server-Xvfb -y &&\
-sudo yum install pam-devel pango-devel pciutils-devel -y &&\
-sudo yum install clang clang-devel llvm-devel -y
+cd ~ && mkdir webrtc-build && cd webrtc-build &&\
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git &&\
+export PATH=$HOME/webrtc-build/depot_tools:$PATH &&\
+fetch --nohooks webrtc &&\
+cd src &&\
+git checkout -b _my__m99_branch refs/remotes/branch-heads/4844 &&\
+cd .. &&\
+gclient sync &&\
+gclient sync -D &&\
+cd src &&\
+./build/install-build-deps.sh
 ```
 
 ### 3. Install CMake
-
+Install CMake that is used for building Amazon Chime SDK for C++ signaling client.
 ```
+cd ~ &&\
 wget https://github.com/Kitware/CMake/releases/download/v3.22.3/cmake-3.22.3.tar.gz &&\
 tar -xzf cmake-3.22.3.tar.gz &&\
 cd cmake-3.22.3 &&\
@@ -38,106 +39,64 @@ cd cmake-3.22.3 &&\
 make &&\
 sudo make install
 ```
-
-### 4. Install Libcxx
-
-For demo purpose, we’ll use 13.0.1 RC for LLVM.
-
+### 4. Build the WebRTC
 ```
-cd ~ &&\
-git clone https://github.com/llvm/llvm-project.git &&\
-cd llvm-project &&\
-git checkout llvmorg-13.0.1-rc3
-```
-
-Build libcxx without libcxxabi
-```
-cd libcxx &&\
-# Build without libcxxabi
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ &&\
-cmake --build build &&\
-cd build &&\
-sudo make install &&\
-cd ../..
-```
-
-Build libcxxabi with libcxx
-```
-cd libcxxabi &&\
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DLIBCXXABI_LIBCXX_INCLUDES=../libcxx/build/include/c++/v1 &&\ 
-cmake --build build &&\
-cd build &&\
-sudo make install &&\
-cd ../..
-```
-
-Build libcxx with libcxxabi
-```
-cd libcxx &&\
-rm -rf build &&\
-cmake -S . -B build . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DLIBCXX_CXX_ABI=libcxxabi -DLIBCXX_CXX_ABI_INCLUDE_PATHS=../libcxxabi/include &&\
-cmake --build build &&\
-cd build &&\
-sudo make install &&\
-cd ../..
-```
-
-(Optional) Enable ASAN Support
-```
-cd compiler-rt &&\
-# You can set install path to your clang
-cmake -S . -B build . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ &&\
-cmake --build build &&\
-cd build && sudo make install
-# If you didn't set install path to your clang
-cd /usr/lib64/clang/11.1.0/lib &&\
-sudo ln -s /usr/lib/linux linux
-```
-
-### 5. Clone necessary library and build
-
-```
-mkdir webrtc-build && cd webrtc-build &&\
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git &&\
 export PATH=$HOME/webrtc-build/depot_tools:$PATH &&\
-fetch --nohooks webrtc &&\
-gclient sync &&\
-gclient sync -D &&\
-cd src &&\
-git checkout -b _my__m99_branch refs/remotes/branch-heads/4844 &&\
-cd .. &&\
-gclient sync &&\
-gclient sync -D &&\
-cd src &&\
-gn_args=is_debug=false \
-        rtc_include_tests=false \
-        target_os="linux" \
-        use_glib=true \
-        libcxx_abi_unstable=false \
-        rtc_use_h264=false \
-        rtc_enable_libevent=false \
-        libcxx_is_shared=true \
-        rtc_use_dummy_audio_file_devices=true \
-        rtc_include_pulse_audio=false ffmpeg_branding="Chrome" &&\
-gn gen out/Default --args=$gn_args &&\
+cd $HOME/webrtc-build/src &&\
+gn_args='is_debug=false
+        rtc_include_tests=false 
+        target_os="linux" 
+        use_glib=true 
+        libcxx_abi_unstable=false 
+        rtc_use_h264=false 
+        rtc_enable_libevent=false 
+        libcxx_is_shared=true 
+        rtc_use_dummy_audio_file_devices=true 
+        rtc_include_pulse_audio=false ffmpeg_branding="Chrome"' &&\
+gn gen out/Default --args="${gn_args}" &&\
 ninja -C out/Default buildtools/third_party/libc++:libc++ -v &&\
-sudo cp out/Default/libc++.so /usr/lib64 &&\
+sudo cp out/Default/libc++.so /usr/lib/ &&\
 ninja -C out/Default -v &&\
 cd .. && mv src webrtc
 ```
 
+### 5. Use WebRTC Clang for build
+Use the Clang from WebRTC.
+```
+git clone https://github.com/aws/amazon-chime-sdk-cpp.git &&
+cd ~/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp &&\
+vim cmake/toolchains/LinuxClang.cmake
+```
+
+Change `LinuxClang.cmake` to following
+```
+set(CMAKE_SYSTEM_NAME Linux)
+
+set(CMAKE_C_COMPILER  /home/ubuntu/webrtc-build/webrtc/third_party/llvm-build/Release+Asserts/bin/clang)
+set(CMAKE_CXX_COMPILER /home/ubuntu/webrtc-build/webrtc/third_party/llvm-build/Release+Asserts/bin/clang++)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
+
+include_directories(SYSTEM /home/ubuntu/webrtc-build/webrtc/buildtools/third_party/libc++/trunk/include /home/ubuntu/webrtc-build/webrtc/third_party/llvm-build/Release+Asserts/lib/clang/14.0.0/include/ /home/ubuntu/webrtc-build/webrtc/buildtools/third_party/libc++/ /home/ubuntu/webrtc-build/webrtc/buildtools/third_party/libc++abi/trunk/include)
+```
+
+
 ### 6. Build C++ SDK signaling client
 
 ```
-git clone https://github.com/aws/amazon-chime-sdk-cpp.git &&\
 export VANILLA_WEBRTC_SRC=$HOME/webrtc-build &&\
 export BORING_SSL_LIBS=$VANILLA_WEBRTC_SRC/webrtc/build/linux/debian_sid_amd64-sysroot/usr/lib/x86_64-linux-gnu &&\
 export BORING_SSL_INCLUDE_DIR=$VANILLA_WEBRTC_SRC/webrtc/third_party/boringssl/src/include &&\
 export TOOLCHAIN_FILE=$HOME/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/cmake/toolchains/LinuxClang.cmake &&\
 cd ~/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp &&\
 rm -rf build && cmake -S . -B build -DLWS_OPENSSL_LIBRARIES="${BORING_SSL_LIBS}/libssl.a;${BORING_SSL_LIBS}/libcrypto.a" -DLWS_OPENSSL_INCLUDE_DIRS=$BORING_SSL_INCLUDE_DIR -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_FILE}" &&\ 
-cmake --build build &&\
-cd demo/cli &&\
+cmake --build build
+```
+
+### 7. Build C++ SDK signaling client Demo
+```
+cd $HOME/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli &&\
 rm -rf build && cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_FILE}" &&\
 cmake --build build
 ```
