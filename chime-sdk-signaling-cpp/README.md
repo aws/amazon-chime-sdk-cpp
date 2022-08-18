@@ -273,3 +273,21 @@ class MySignalingObserver: public SignalingClientObserver {
 
 signaling_client.Stop();
 ```
+
+## Debugging issues in C++ SDK signaling client
+
+### Enable Address Sanitizer Support
+
+#### Linux
+On the chime-sdk-signaling-cpp, run the following command
+
+```
+cmake -S . -B build -DLWS_OPENSSL_LIBRARIES="<libssl-location>/libssl.a;<libcrypto-location>/libcrypto.a" -DLWS_OPENSSL_INCLUDE_DIRS=<ssl-header-location> -DCMAKE_TOOLCHAIN_FILE="./cmake/toolchains/LinuxClang.cmake" -DENABLE_ASAN=ON
+cmake --build build
+```
+
+### Enable Debug logging
+You can enable debug logging by setting the log level to debug.
+```
+SetSignalingLogLevel("DEBUG");
+```
