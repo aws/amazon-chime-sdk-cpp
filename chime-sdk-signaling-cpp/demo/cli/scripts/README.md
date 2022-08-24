@@ -5,7 +5,7 @@ This is helper script to run the cli demo.
 ## Prerequisites
 1. You have installed [python3](https://www.python.org/downloads/) (>=3.6).
 
-2. Install [requests](https://requests.readthedocs.io/en/latest/)
+2. You have install [requests](https://requests.readthedocs.io/en/latest/)
 
 3. You have deployed [JS Serverless Demo](https://github.com/aws/amazon-chime-sdk-js/tree/main/demos/serverless)
 
