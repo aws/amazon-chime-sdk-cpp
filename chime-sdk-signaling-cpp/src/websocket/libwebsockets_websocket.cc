@@ -83,10 +83,15 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
     case LWS_CALLBACK_CLIENT_RECEIVE: {
       lwsl_debug("Data received.\n");
       lwsl_hexdump_debug(in, len);
+      const size_t remaining = lws_remaining_packet_payload(wsi);
       auto* uint8_ptr = static_cast<uint8_t*>(in);
-      std::vector<uint8_t> data;
-      data.assign(uint8_ptr, uint8_ptr + len);
-      self->observer_->OnWebsocketBinaryReceived(data);
+      // Messages can be fragmented if the size exceeds max bytes
+      // Therefore, it needs to handle fragmented message.
+      self->data_.insert(self->data_.end(), uint8_ptr, uint8_ptr + len);
+      if (!remaining && lws_is_final_fragment(wsi)) {
+        self->observer_->OnWebsocketBinaryReceived(self->data_);
+        self->data_.clear();
+      }
       break;
     }
 
@@ -136,6 +141,7 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
       break;
     }
     case LWS_CALLBACK_CLIENT_WRITEABLE: {
+      // TODO: Check if this can be also fragmented
       if (!self->message_queue_.empty()) {
         std::vector<uint8_t> data = self->message_queue_.front();
         self->message_queue_.pop();
@@ -238,7 +244,9 @@ void LibwebsocketsWebsocket::Poll() { lws_service(context_, 0); }
 
 void LibwebsocketsWebsocket::Close() {
   if (!context_) return;
+
   lws_context_destroy(context_);
+  context_ = nullptr;
   lwsl_user("Closed\n");
 }
 
@@ -248,6 +256,7 @@ void LibwebsocketsWebsocket::SendBinary(const std::vector<uint8_t>& data) {
   // Triggers LWS_CALLBACK_CLIENT_WRITEABLE event in Callback when socket is ready to accept data.
   lws_callback_on_writable(wsi_);
 }
+
 int LibwebsocketsWebsocket::ConvertLogLevel(LogLevel level) {
   int lws_level = 0;
   switch (level) {
@@ -267,7 +276,7 @@ int LibwebsocketsWebsocket::ConvertLogLevel(LogLevel level) {
   return lws_level;
 }
 
-void LibwebsocketsWebsocket::HandleError(std::string error_description) {
+void LibwebsocketsWebsocket::HandleError(const std::string& error_description) {
   lwsl_err("%s", error_description.c_str());
   WebsocketErrorStatus error_status;
   error_status.description = error_description;

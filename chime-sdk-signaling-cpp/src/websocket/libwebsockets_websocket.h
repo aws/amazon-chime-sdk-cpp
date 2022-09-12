@@ -27,7 +27,7 @@ struct LibwebsocketsWebsocketConfiguration : public WebsocketConfiguration {
 class LibwebsocketsWebsocket : public Websocket {
  public:
   LibwebsocketsWebsocket(LibwebsocketsWebsocketConfiguration configuration, WebsocketObserver* observer);
-
+  ~LibwebsocketsWebsocket() = default;
   // chime::signaling::Websocket overrides
   void Connect() override;
   void Close() override;
@@ -40,6 +40,9 @@ class LibwebsocketsWebsocket : public Websocket {
  private:
   // Messages are buffered here first until the socket will accept packets without blocking.
   std::queue<std::vector<uint8_t>> message_queue_;
+
+  // Internal data
+  std::vector<uint8_t> data_;
 
   // This policy sets both connection attempt retry parameters and ping/pong parameters.
   // The retry parameters apply to failures that happen before a websocket connection is established.
@@ -83,7 +86,7 @@ class LibwebsocketsWebsocket : public Websocket {
   int ConvertLogLevel(LogLevel level);
 
   // Log error and notify observer.
-  void HandleError(std::string error_description);
+  void HandleError(const std::string& error_description);
 };
 
 }  // namespace chime
