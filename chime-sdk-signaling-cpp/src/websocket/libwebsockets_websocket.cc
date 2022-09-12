@@ -87,10 +87,10 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
       auto* uint8_ptr = static_cast<uint8_t*>(in);
       // Messages can be fragmented if the size exceeds max bytes
       // Therefore, it needs to handle fragmented message.
-      self->data_.insert(self->data_.end(), uint8_ptr, uint8_ptr + len);
+      self->received_data_buffer_.insert(self->received_data_buffer_.end(), uint8_ptr, uint8_ptr + len);
       if (!remaining && lws_is_final_fragment(wsi)) {
-        self->observer_->OnWebsocketBinaryReceived(self->data_);
-        self->data_.clear();
+        self->observer_->OnWebsocketBinaryReceived(self->received_data_buffer_);
+        self->received_data_buffer_.clear();
       }
       break;
     }

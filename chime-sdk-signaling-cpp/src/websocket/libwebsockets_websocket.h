@@ -42,7 +42,7 @@ class LibwebsocketsWebsocket : public Websocket {
   std::queue<std::vector<uint8_t>> message_queue_;
 
   // Internal data
-  std::vector<uint8_t> data_;
+  std::vector<uint8_t> received_data_buffer_;
 
   // This policy sets both connection attempt retry parameters and ping/pong parameters.
   // The retry parameters apply to failures that happen before a websocket connection is established.
