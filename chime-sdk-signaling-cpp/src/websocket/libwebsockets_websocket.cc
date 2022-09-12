@@ -246,7 +246,6 @@ void LibwebsocketsWebsocket::Close() {
   if (!context_) return;
 
   lws_context_destroy(context_);
-  context_ = nullptr;
   lwsl_user("Closed\n");
 }
 
