@@ -3,6 +3,7 @@
 #ifndef SIGNALING_SDK_RUNNABLE_H
 #define SIGNALING_SDK_RUNNABLE_H
 
+#include <atomic>
 #include <thread>
 
 namespace chime {
@@ -11,6 +12,11 @@ namespace chime {
 // and Poll() should be overridden with polling logic.
 class Runnable {
  public:
+  ~Runnable() {
+    running_ = false;
+    if (stop_thread_.joinable()) stop_thread_.join();
+    if (run_thread_.joinable()) run_thread_.join();
+  }
   // Implementation may require this to be called.
   // It is expected that this call is non-blocking.
   virtual void Run() {
@@ -26,7 +32,15 @@ class Runnable {
   virtual void StopRun() {
     if (!running_) return;
     running_ = false;
-    if (run_thread_.joinable()) run_thread_.join();
+    // We need to prevent from stopping from same thread, which will cause deadlock.
+    if (std::this_thread::get_id() == run_thread_.get_id()) {
+      if (stop_thread_.joinable()) stop_thread_.join();
+      stop_thread_ = std::thread([&]() {
+        if (run_thread_.joinable()) run_thread_.join();
+      });
+    } else {
+      if (run_thread_.joinable()) run_thread_.join();
+    }
   }
 
   // Implementation may require this to be called in order
@@ -38,7 +52,8 @@ class Runnable {
 
  private:
   std::thread run_thread_;
-  bool running_ = false;
+  std::thread stop_thread_;
+  std::atomic<bool> running_ = false;
 };
 
 }  // namespace chime
