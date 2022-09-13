@@ -3,6 +3,7 @@
 #ifndef SIGNALING_SDK_RUNNABLE_H
 #define SIGNALING_SDK_RUNNABLE_H
 
+#include <atomic>
 #include <thread>
 
 namespace chime {
@@ -11,22 +12,30 @@ namespace chime {
 // and Poll() should be overridden with polling logic.
 class Runnable {
  public:
+  ~Runnable() {
+    bool expected = true;
+    if (running_.compare_exchange_strong(expected, false)) {
+      StopRun();
+    }
+  }
   // Implementation may require this to be called.
   // It is expected that this call is non-blocking.
   virtual void Run() {
-    if (running_) return;
-    running_ = true;
-    run_thread_ = std::thread([=]() {
-      while (running_) {
-        Poll();
-      }
-    });
+    bool expected = false;
+    if (running_.compare_exchange_strong(expected, true)) {
+      run_thread_ = std::thread([=]() {
+        while (running_) {
+          Poll();
+        }
+      });
+    }
   }
 
   virtual void StopRun() {
-    if (!running_) return;
-    running_ = false;
-    if (run_thread_.joinable()) run_thread_.join();
+    bool expected = true;
+    if (running_.compare_exchange_strong(expected, false)) {
+      if (run_thread_.joinable()) run_thread_.join();
+    }
   }
 
   // Implementation may require this to be called in order
@@ -38,7 +47,7 @@ class Runnable {
 
  private:
   std::thread run_thread_;
-  bool running_ = false;
+  std::atomic<bool> running_ = false;
 };
 
 }  // namespace chime
