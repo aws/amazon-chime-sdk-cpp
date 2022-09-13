@@ -95,7 +95,6 @@ void WebsocketSignalingTransport::OnWebsocketClosed(WebsocketStatus status) {
 
 void WebsocketSignalingTransport::OnWebsocketError(WebsocketErrorStatus error) {
   is_stopped_ = true;
-  CHIME_LOG(LogLevel::kInfo, "Nick: OnWebsocketError")
   SignalingError signaling_error{SignalingErrorType::kClientFatalError, error.description};
   observer_->OnSignalingErrorReceived(signaling_error);
 }
