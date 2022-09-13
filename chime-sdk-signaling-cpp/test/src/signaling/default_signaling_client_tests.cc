@@ -69,8 +69,8 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendLeave) {
       std::move(dependencies)
   };
 
-  // Join
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(1);
+  // Join + Leave
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
   client.OnSignalingConnected();
 
   client.Stop();
