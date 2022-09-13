@@ -118,15 +118,20 @@ void DefaultSignalingClient::Start() {
   signaling_transport_->Start();
 }
 
-void DefaultSignalingClient::Stop() {
-  CHIME_LOG(LogLevel::kInfo, "Stopping DefaultSignalingClient")
-  if (state_ == SignalingState::kConnected) SendLeave();
-  state_ = SignalingState::kDisconnecting;
+void DefaultSignalingClient::Close() {
   signaling_transport_->Stop();
   local_video_sources_.clear();
   local_audio_sources_.clear();
   remote_video_sources_.clear();
   attendee_id_to_internal_configurations_.clear();
+}
+
+void DefaultSignalingClient::Stop() {
+  CHIME_LOG(LogLevel::kInfo, "Stopping DefaultSignalingClient")
+  if (state_ == SignalingState::kConnected) SendLeave();
+  state_ = SignalingState::kDisconnecting;
+  // Gracefully, shutting down if it is connected. It will call Close() to terminate when LEAVE_ACK is received.
+  SendLeave();
 }
 
 void DefaultSignalingClient::Poll() { signaling_transport_->Poll(); }
@@ -271,6 +276,7 @@ void DefaultSignalingClient::OnSignalFrameReceived(const signal_rtc::SignalFrame
     case signal_rtc::SignalFrame::LEAVE_ACK:
       CHIME_LOG(LogLevel::kInfo, "Leave is successful")
       state_ = SignalingState::kDisconnected;
+      Close();
       break;
     case signal_rtc::SignalFrame::INDEX:
       HandleIndexFrame(frame.index());
@@ -463,6 +469,7 @@ void DefaultSignalingClient::HandleIndexFrame(const signal_rtc::IndexFrame& inde
 }
 
 DefaultSignalingClient::~DefaultSignalingClient() {
+  Stop();
 }
 
 DefaultSignalingClient::DefaultSignalingClient(SignalingClientConfiguration signaling_configuration,
