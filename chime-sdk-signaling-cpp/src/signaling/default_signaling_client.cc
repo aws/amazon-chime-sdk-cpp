@@ -469,7 +469,7 @@ void DefaultSignalingClient::HandleIndexFrame(const signal_rtc::IndexFrame& inde
 }
 
 DefaultSignalingClient::~DefaultSignalingClient() {
-  Stop();
+  Close();
 }
 
 DefaultSignalingClient::DefaultSignalingClient(SignalingClientConfiguration signaling_configuration,

@@ -69,8 +69,8 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendLeave) {
       std::move(dependencies)
   };
 
-  // Join + Leave
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
+  // Join
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(1);
   client.OnSignalingConnected();
 
   client.Stop();
@@ -104,8 +104,8 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendSignalFrameWhenConnected) {
   };
 
   // Make the state to be connected
-  // Update + Join + Leave
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(3);
+  // Update + Join
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
   client.OnSignalingConnected();
 
   client.SendUpdates();
@@ -139,8 +139,8 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendJoinWhenConnected) {
   };
 
   // Make the state to be connected
-  // Join + Leave when destructed
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
+  // Join
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(1);
 
   client.OnSignalingConnected();
 }
@@ -175,8 +175,8 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendDataMessageWhenSendDataMessage)
       configuration,
       std::move(dependencies)
   };
-  // Join + data message + leave
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(3);
+  // Join + data message
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
   
   client.OnSignalingConnected();
 
