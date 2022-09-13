@@ -58,7 +58,7 @@ TEST_F(DefaultSignalingClientTest, ShouldCallStart) {
   client.Start();
 }
 
-TEST_F(DefaultSignalingClientTest, ShouldCallStop) {
+TEST_F(DefaultSignalingClientTest, ShouldCallSendLeave) {
   SignalingClientConfiguration configuration;
   auto* mock_signaling_transport_ref = mock_signaling_transport_.get();
   DefaultSignalingDependencies dependencies {
@@ -69,7 +69,9 @@ TEST_F(DefaultSignalingClientTest, ShouldCallStop) {
       std::move(dependencies)
   };
 
-  EXPECT_CALL(*mock_signaling_transport_ref, Stop());
+  // Join + Leave
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
+  client.OnSignalingConnected();
 
   client.Stop();
 }
@@ -102,8 +104,9 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendSignalFrameWhenConnected) {
   };
 
   // Make the state to be connected
+  // Update + Join + Leave
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(3);
   client.OnSignalingConnected();
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame);
 
   client.SendUpdates();
 }
@@ -136,12 +139,13 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendJoinWhenConnected) {
   };
 
   // Make the state to be connected
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(1);
+  // Join + Leave when destructed
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
 
   client.OnSignalingConnected();
 }
 
-TEST_F(DefaultSignalingClientTest, ShouldCallOnsignalingStoppedWhenClosed) {
+TEST_F(DefaultSignalingClientTest, ShouldCallOnSignalingClientStoppedWhenClosed) {
   SignalingClientConfiguration configuration;
   DefaultSignalingDependencies dependencies {
       std::make_unique<MockSignalingTransportFactory>(std::move(mock_signaling_transport_))
@@ -171,8 +175,10 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendDataMessageWhenSendDataMessage)
       configuration,
       std::move(dependencies)
   };
-
-  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(0);
+  // Join + data message + leave
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(3);
+  
+  client.OnSignalingConnected();
 
   DataMessageToSend data_message_to_send;
   data_message_to_send.lifetime_ms = 1000;

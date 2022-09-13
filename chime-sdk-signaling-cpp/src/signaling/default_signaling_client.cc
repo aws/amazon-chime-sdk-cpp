@@ -128,10 +128,10 @@ void DefaultSignalingClient::Close() {
 
 void DefaultSignalingClient::Stop() {
   CHIME_LOG(LogLevel::kInfo, "Stopping DefaultSignalingClient")
-  if (state_ == SignalingState::kConnected) SendLeave();
-  state_ = SignalingState::kDisconnecting;
+  if (state_ != SignalingState::kConnected) return;
   // Gracefully, shutting down if it is connected. It will call Close() to terminate when LEAVE_ACK is received.
   SendLeave();
+  state_ = SignalingState::kDisconnecting;
 }
 
 void DefaultSignalingClient::Poll() { signaling_transport_->Poll(); }
