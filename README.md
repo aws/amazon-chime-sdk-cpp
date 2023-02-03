@@ -15,7 +15,7 @@ To get started, see the following resources:
 
 ## Setup
 
-We currently distribute a Windows Binary of the C++ SDK, you can find the set up instructions [here](https://github.com/aws/amazon-chime-sdk-cpp/guides/setup_windows.md).
+We currently distribute a Windows Binary of the C++ SDK, you can find the set up instructions [here](guides/setup_windows.md).
 
 ## Reporting a suspected vulnerability
 
@@ -23,4 +23,4 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## API Overview
 
-C++ SDK API usage can be found [here](https://github.com/aws/amazon-chime-sdk-cpp/guides/api_overview.md) with code snippets.
+C++ SDK API usage can be found [here](guides/api_overview.md) with code snippets.
