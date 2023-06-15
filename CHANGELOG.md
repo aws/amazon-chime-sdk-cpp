@@ -3,7 +3,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2023-06-15
+
+### Added
+* Added `AudioProcessor` interface
+* Added `NoOpAudioProcessor`
+* Added `DefaultAudioProcessor`
+  * `DefaultAudioProcessor` can toggle the high pass filter, echo canceller, noise suppressor, automatic gain controller, and Voice Focus in real-time via `GetConfiguration()` and `SetConfiguration()`
+* Added `AudioContext` interface that replaces `AudioDriver`
+* Added `enable_audio_redundancy` option in `AudioConfiguration` to enable redundant audio encoding (as specified in RFC 2198 https://www.rfc-editor.org/rfc/rfc2198). Redundant audio encoding improves packet loss recovery.
+* Added parsing of remote audio rtc stats inside `VideoClientRtcStatsAdapter`.
+* (**Breaking**) Added `codecPreference` in `AddLocalVideo` API of `AudioVideoController`
+* Added `AddInputNode`, `AddOutputNode`, `RemoveInputNode`, `RemoveOutputNode` to `AudioContext`
+* Use implementation of `AudioNode` for sending and receiving data to/from the media server
+* Move `AudioProcessor` and `AudioResampler` into `AudioContext`
+* Allow `AudioProcessor` injection through `AudioContextFactory`
+
+### Fixed
+* Remove references to pinpoint.
+* Fixed the issue where media client did not stop when server stops.
+* Upgraded libwebsockets to fix retry issue.
+
+### Removed
+* (**Breaking**) Remove `AudioSource` and `AudioSink`
+* (**Breaking**) Remove `AddLocalAudioSink`, `RemoveLocalAudioSink`, `AddRemoteAudioSink`, `RemoveRemoteAudioSink`
+* (**Breaking**) Remove `OnLocalAudioSourceAvailable` and `OnRemoteMixedAudioSourceAvailable` from `AudioVideObserver`
+
 ## [0.8.0] - 2023-02-03
+
 ### Added
 * Added `size_y_`, `size_u_`, and `size_v_` to `I420VideoFrameBuffer`
 
@@ -94,13 +121,13 @@ For more information, visit [the live transcription guide](https://docs.aws.amaz
 ### Fixed
 * Fixed empty frames sending when no content source added.
 
-## [0.2.0] - 2021-07-16
+## [0.0.2] - 2021-07-16
 
 ### Added
 * [Documentation] Added comments.
 * Added content share functionality.
 
-## [0.1.0] - 2021-05-28
+## [0.0.1] - 2021-05-28
 
 ### Added
 * Added meeting session creation components.
