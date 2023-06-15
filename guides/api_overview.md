@@ -39,8 +39,9 @@ chime::MeetingSessionConfiguration configuration{meeting_id,
 Create `MeetingSessionDependencies` to pass dependencies. All dependencies are optional with defaults set internally when they are not set.
 
 ```
-chime::MeetingSessionDependencies dependencies{};
-dependencies.logger = std::move(logger);
+std::shared_ptr<chime::MeetingSessionDependencies> session_dependencies =
+      std::make_shared<chime::MeetingSessionDependencies>();
+dependencies->logger = std::move(logger);
 ```
 
 ### **1D. Create the meeting session**
@@ -48,8 +49,10 @@ dependencies.logger = std::move(logger);
 Create a `MeetingSession` with the `MeetingSessionDependencies` and `MeetingSessionConfiguration`.
 
 ```
+std::shared_ptr<chime::MeetingSessionDependencies> session_dependencies =
+      std::make_shared<chime::MeetingSessionDependencies>();
 std::unique_ptr<chime::MeetingSession> meeting_session =
-    MeetingSession::Create(std::move(configuration), std::move(dependencies));
+    MeetingSession::Create(std::move(configuration), dependencies);
 ```
 
 ## 2. Register an audio video observer
@@ -224,9 +227,9 @@ class MyAudioVideoObserver : public chime::AudioVideoObserver {
 
 ## 5. Send and receive audio
 
-You can use the following to send and receive audio. Currently, all the audio is mixed into one stream that is always available for receiving.
+You can start sending audio by connecting the input side of the audio context to the meeting session by calling `StartLocalAudio`. Similarly, you can start receiving mixed conference audio by connecting the output side of the audio context to the meeting session by calling `StartRemoteAudio`. More details on each of these can be found in the sections that follow.
 
-`AudioSource` is an interface for sources which produce audio samples, and can send to an `AudioSink` that consumes audio samples and may process, fork, or playback these samples. Note that the `AudioSource` needs to send 10ms of data at a time. This is the currently supported configuration for `AudioBuffer`:
+In addition to this, `AudioNode` is an interface that can be used to consume audio samples and may process, fork, or modify these samples. Note that the `AudioNode` needs to process 10ms of data at a time. This is the currently supported configuration for `AudioBuffer`:
 
 * Sample format - 16 signed PCM
 * Sample rate - 48khz
@@ -234,69 +237,121 @@ You can use the following to send and receive audio. Currently, all the audio is
   * Speaker: Mono and Stereo
   * Mic: Mono
 
-Typically, `AudioSource` is implemented by classes that are used by the `AudioDriver`. A custom `AudioDriver` can be injected, but internal system specific drivers will be used by default.
+An `AudioNode` can be added to the input path by calling `AudioContext::AddInputNode` and to the output path by calling `AudioContext::AddOutputNode`.
+
+By default, when a meeting session object is created, an internal system specific audio context implementation is used. This can be overriden by injecting a custom implementation if required. See section 12 and 13 for more information on this.
 
 ### **5a. Sending audio**
 
-To overwrite audio sent from the audio driver (the audio driver typically sends mic audio), optionally create an `AudioSink` and call `AudioVideoController::AddLocalAudioSink` passing in `Modality::kNone`. To send content audio, it is necessary to call `AudioVideoController::AddLocalAudioSink` passing in `Modality::kContent`. Content audio will not be sent otherwise.
+To start sending audio into the meeting session, call `AudioVideoController::StartLocalAudio` passing in `Modality::kNone`. To send content audio, it is necessary to call `AudioVideoController::StartLocalAudio` passing in `Modality::kContent`. Content audio will not be sent otherwise. This connects the injected or internally created audio context to the meeting session.
 
 ```
-class MyAudioSink : public chime::AudioSink {
+meeting_session->audio_video->Start();
+meeting_session->audio_video->StartLocalAudio(Modality::kNone);
+meeting_session->audio_video->StartLocalAudio(Modality::kContent);
+```
+
+To overwrite or modify audio sent from the audio context (the audio context typically sends mic audio), optionally create an `AudioNode` and call `AudioContext::AddInputNode`. Note that there is a separate audio context for each modality. Depending on which modalitys audio requires overwriting or modification, the respective audio context needs to be used.
+
+```
+class MyAudioNode : public chime::AudioNode {
  public:
-   void OnAudioBufferReceived(std::shared_ptr<chime::AudioBuffer> audio_buffer) override {
+   ProcessResult Process(AudioBuffer* audio_buffer) override {
 
      // Use AudioBuffer metadata to determine size of the sample.
-     audio_buffer.data = // overwrite with 10ms of audio.
+     audio_buffer->data = // overwrite with 10ms of audio.
    }
 }
 
 // audio
-MyAudioSink* my_audio_sink = /* pointer to the instance of MyAudioSink */;
-meeting_session->audio_video->AddLocalAudio(my_audio_sink, Modality::kNone);
+MyAudioNode* my_audio_node = /* pointer to the instance of MyAudioNode */;
+audio_context->AddInputNode(my_audio_node);
 
 // content
-MyAudioSink* my_audio_content_sink = /* pointer to the instance of MyAudioSink */;
-meeting_session->audio_video->AddLocalAudio(my_audio_content_sink, Modality::kContent);
+MyAudioNode* my_audio_content_node = /* pointer to the instance of MyAudioNode */;
+content_audio_context->AddInputNode(my_audio_content_node);
 ```
+
+If adding an audio node after `StartLocalAudio` has been called, please call `StopLocalAudio`, add the node and call `StartLocalAudio` again. This is required as `StartLocalAudio` internally adds an audio node that is responsible to writing the audio buffer to the underlying webrtc transport to send it to the backend servers. This internal node needs to be in the last position in the node data structure in order to ensure all updates to the audio buffer is complete before it gets to this node.
+
+```
+// Assuming StartLocalAudio was called before this line.
+MyAudioNode* my_audio_node = /* pointer to the instance of MyAudioNode */;
+meeting_session->audio_video->StopLocalAudio(Modality::kNone);
+audio_context->AddInputNode(my_audio_node);
+meeting_session->audio_video->StartLocalAudio(Modality::kNone);
+
+```
+
+To stop intercepting microphone audio, call `AudioContext::RemoveInputNode`.
+
+```
+audio_context->StopInput();
+audio_context->RemoveInputNode(my_audio_node);
+audio_context->StartInput();
+```
+
+Note that `AddInputNode` and `RemoveInputNode` can only be called when the audio context is in stopped state.
 
 ### 5B. Receiving Audio
 
-To access the meeting's mixed audio stream before the audio driver processes it for playback, implement `AudioVideoObserver::OnRemoteMixedAudioSourceAvailable` and bind your `AudioSink` implementation to the mixed `RemoteAudioSource` by calling `RemoteAudioSource::AddAudioSink`.
+To start receiving audio from the meeting session, call `AudioVideoController::StartRemoteAudio`. Note that there is no Modality parameter here as content share does not have a receiving side.
 
 ```
-class MyAudioSink : public chime::AudioSink {
+meeting_session->audio_video->Start();
+meeting_session->audio_video->StartRemoteAudio();
+```
+
+To access the meeting's mixed audio stream before the audio context processes it, i.e. sends to speaker device for playback, optionally create an `AudioNode` and call `AudioContext::AddOutputNode`.
+
+```
+class MyAudioNode : public chime::AudioNode {
  public:
-   void OnAudioBufferReceived(std::shared_ptr<chime::AudioBuffer> audio_buffer) override {
-     // Process, fork or play audio samples
+   ProcessResult Process(AudioBuffer* audio_buffer) override {
+
+     // Use AudioBuffer metadata to determine size of the sample.
+     audio_buffer->data = // overwrite with 10ms of audio.
    }
 }
 
-MyAudioSink* my_audio_sink_ = /* pointer to the instant of MyAudioSink */;
-
-// ...
-
-class MyAudioVideoObserver : public chime::AudioVideoObserver {
- public:
-  void OnRemoteMixedAudioSourceAvailable(
-    std::shared_ptr<chime::RemoteAudioSource> remote_audio_source) {
-    // Binding audio sink
-    remote_audio_source->AddAudioSink(my_audio_sink_);
-  }
-};
+MyAudioNode* my_audio_node = /* pointer to the instance of MyAudioNode */;
+audio_context->AddOutputNode(my_audio_node);
 
 ```
 
-To stop intercepting audio, call `RemoteAudioSource::RemoveAudioSink`. This will not stop the `AudioDriver` from sending to a playback device (usually speakers).
+By default, the default output callback sends audio buffers to the output audio nodes in reverse order of addition. If `AddOutputNode` is called for `my_audio_node1`, followed by `my_audio_node2`, `my_audio_node2` receives the audio buffer first followed by `my_audio_node1` followed by the speaker device. This is to accomodate `StartRemoteAudio` which internally adds an audio node to the end of the list that is responsible for pulling an audio buffer containing mixed conference audio from the underlying webrtc transport. This internal node needs to be in the last position in the list in order to ensure we are always pulling from the transport first and only then sending to other output nodes for modification.
+
+If adding an audio node after `StartRemoteAudio` has been called, please call `StopRemoteAudio`, add the node and call `StartRemoteAudio` again. This is again due to the same reason as above regarding the internal audio node that needs to be in the last position.
 
 ```
-remote_audio_source->RemoveAudioSink(my_audio_sink_);
+// Assuming StartRemoteAudio was called before this line.
+MyAudioNode* my_audio_node = /* pointer to the instance of MyAudioNode */;
+meeting_session->audio_video->StopRemoteAudio();
+audio_context->AddOutputNode(my_audio_node);
+meeting_session->audio_video->StartRemoteAudio();
+
 ```
+
+To stop intercepting audio, call `AudioContext::RemoveOutputNode`.
+
+```
+audio_context->StopOutput();
+audio_context->RemoveOutputNode(my_audio_node);
+audio_context->StartOutput();
+```
+
+Note that `AddOutputNode` and `RemoveOutputNode` can only be called when the audio context is in stopped state.
+
+### 5C. Muting and Unmuting Local Audio
 
 To mute or unmute local audio or content audio call `SetLocalAudioMute` on the `AudioVideoController` with the respective modality and mute state desired.
 
 ```
 // This unmutes content audio
 meeting_->audio_video->SetLocalAudioMute(false, Modality::kContent);
+
+// This mutes attendee audio
+meeting_->audio_video->SetLocalAudioMute(true, Modality::kNode);
 ```
 
 ## 6. Build a roster of participants
@@ -631,59 +686,109 @@ dispatcher->SubscribeToTopic(transcription_controller.get(), chime::kTranscripti
 meeting_session->audio_video->AddAudioVideoObserver(dispatcher.get());
 ```
 
-## 12. Inject a custom audio driver
+## 12. Inject a custom audio context
 
-By default, an internal system dependent audio driver is used. However, you have the option to inject your own.
+By default, an internal system dependent audio context is used. However, you have the option to inject your own.
 
-Some reasons you might want to override the default audio driver:
+Some reasons you might want to override the default audio context:
 
  - You want to use a third party library to access devices.
  - You want direct control over the interactions between the audio stream and the audio devices used.
 
-First implement your `AudioDriver`
+First implement your `AudioContext`
 
 ```
-class MyAudioDriver: public AudioDriver {
+class MyAudioContext: public AudioContext {
  public:
-  int Init(
-      const AudioDriverConfiguration& playback_config,
-      std::unique_ptr<PlaybackCallback> playback_callback,
-      const AudioDriverConfiguration& record_config,
-      std::unique_ptr<RecordCallback> record_callback) override {
-   
+  int InitOutput(
+      const AudioContextConfiguration& output_config) override {
+
      // Validate configurations.
-     
+
+     // Initialize output callback
+
      // Do any initialization of system library.
-   
    }
 
-  int Start() override {
-    // Call system APIs to start playback and/or recording.
+   int InitInput(
+      const AudioContextConfiguration& input_config) override {
+
+     // Validate configurations.
+
+     // Initialize input callback
+
+     // Do any initialization of system library.
+   }
+
+  int StartOutput() override {
+    // Call system APIs to start playback.
   }
 
-  int Stop() override {
-    // Stop system playback and/or recording.
+  int StartInput() override {
+    // Call system APIs to start recording.
   }
 
-  void Destroy() override {
-    // Cleanup of system device management.
+  int StopOutput() override {
+    // Stop system playback.
   }
 
-  AudioDriverConfiguration PlaybackConfiguration() const override {
-    // return the playback configuration.
-  }
-  AudioDriverConfiguration RecordConfiguration() const override {
-    // return the record configuration.
+  int StopInput() override {
+    // Stop system recording.
   }
 
-  std::string GetImplementationId() const override {
-    // return an id to identify this audio driver implementation.
+  void DestroyOutput() override {
+    // Cleanup of speaker device connection.
+  }
+
+  void DestroyInput() override {
+    // Cleanup of microphone device connection.
+  }
+
+  AudioContextConfiguration OutputConfiguration() const override {
+    // return the output configuration.
+  }
+
+  AudioContextConfiguration InputConfiguration() const override {
+    // return the input configuration.
   }
   ...
 };
 ```
 
-You can also use the `AudioDeviceEnumerator` to register a device change observer with your system API.
+Then instantiate and inject your audio context.
+
+```
+std::shared_ptr<chime::MeetingSessionDependencies> my_meeting_session_dependencies =
+      std::make_shared<chime::MeetingSessionDependencies>();
+...
+my_meeting_session_dependencies->audio_context = std::make_shared<chime::AudioContext>(MyAudioContext());
+
+MeetingSessionConfiguration my_meeting_session_configuration;
+...
+my_meeting_session_configuration.audio_video_configuration.audio_configuration.playback_configuration = // configure playback configuration
+my_meeting_session_configuration.audio_video_configuration.audio_configuration.record_configuration = // configure record configuration
+
+// Create a meeting session as described in the first section.
+```
+
+## 13. Access internally created default audio context
+
+By default, an internal system dependent audio context is used. You can gain access to the default audio context through the meeting session dependencies object.
+
+```
+std::shared_ptr<chime::MeetingSessionDependencies> session_dependencies =
+      std::make_shared<chime::MeetingSessionDependencies>();
+std::unique_ptr<chime::MeetingSession> meeting_session =
+    MeetingSession::Create(std::move(configuration), dependencies);
+
+// Accessing internally created default audio context
+AudioContext* internal_audio_context = session_dependencies->audio_context.get();
+AudioContext* internal_content_audio_context = session_dependencies->content_share_audio_context.get();
+```
+
+## 14. Audio Device Enumerator
+
+You can use the `AudioDeviceEnumerator` to get a list of audio devices using system APIs. This also lets you register a device change observer which gets notified if the device list changes.
 
 ```
 class MyAudioDeviceEnumerator: public AudioDeviceEnumerator {
@@ -698,7 +803,7 @@ class MyAudioDeviceEnumerator: public AudioDeviceEnumerator {
     observer_ = std::move(device_change);
     // Register the below callback function with system API.
   }
-  
+
   // Implement a system API specific callback. The signature will differ depending on the API.
   static int callback(std::vector<int> device_ids, void* ctx) {
     auto self = static_cast<MyAudioDeviceEnumerator*>(ctx);
@@ -718,18 +823,68 @@ class MyAudioDeviceChangeObserver: public AudioDeviceChangeObserver {
 }
 ```
 
-Then instantiate and inject your audio driver.
+## 15. Enable/Disable audio processing submodules for internally created DefaultAudioProcessor
+```cpp
+// Create meeting session dependencies object
+std::shared_ptr<chime::MeetingSessionDependencies> dependencies =
+      std::make_shared<chime::MeetingSessionDependencies>();
 
+// Create Meeting session object
+std::shared_ptr<chime::MeetingSession> meeting_session =
+    chime::MeetingSession::Create(std::move(configuration), dependencies);
+
+// Since we didn't inject any audio context, video client controller will
+// internally create a default audio context and assign to the session dependencies member
+AudioContext* internal_audio_context = dependencies->audio_context.get();
+
+// Fetch the audio processor from this audio context
+AudioProcessor* audio_processor = internal_audio_context->GetAudioProcessor();
+
+// Get current configuration
+AudioProcessorConfiguration config = audio_processor->GetConfiguration();
+
+// Disable all submodules in config
+using namespace chime::DefaultAudioProcessorOptions;
+using namespace chime::DefaultAudioProcessorOptions::Values;
+config.options[kHighPassFilterEnabled] = kFalse;
+config.options[kEchoCancellerEnabled] = kFalse;
+config.options[kNoiseSuppressorEnabled] = kFalse;
+config.options[kAutomaticGainControllerEnabled] = kFalse;
+config.options[kVoiceFocusEnabled] = kFalse;
+
+// Apply config
+audio_processor->SetConfiguration(static_cast<const AudioProcessorConfiguration>(config));
 ```
-MeetingSessionDependencies my_meeting_session_dependencies;
-...
-my_meeting_session_dependencies.custom_audio_driver = std::make_unique<chime::AudioDriver>(MyAudioDriver());
 
-MeetingSessionConfiguration my_meeting_session_configuration;
-...
-my_meeting_session_configuration.audio_video_configuration.audio_configuration.playback_configuration = // configure playback configuration
-my_meeting_session_configuration.audio_video_configuration.audio_configuration.record_configuration = // configure record configuration
+## 16. Disable all audio processing
+```cpp
+// Create meeting session dependencies object
+std::shared_ptr<chime::MeetingSessionDependencies> session_dependencies =
+      std::make_shared<chime::MeetingSessionDependencies>();
 
-// Create a meeting session as described in the first section.
+// Inject nullptr = noop audio processing
+session_dependencies->audio_context = chime::AudioContextFactory::Create(logger, nullptr);
+
+// Create Meeting session object
+std::unique_ptr<chime::MeetingSession> meeting_session =
+    chime::MeetingSession::Create(std::move(configuration), session_dependencies);
 ```
 
+## 16. Inject custom audio processor
+```cpp
+// Create meeting session dependencies object
+std::shared_ptr<chime::MeetingSessionDependencies> session_dependencies =
+      std::make_shared<chime::MeetingSessionDependencies>();
+
+// Created your own customer audio processor
+std::unique_ptr<AudioProcessor> custom_audio_processor = std::make_unique<CustomAudioProcessor>();
+
+// Inject custom audio processing
+session_dependencies->audio_context = chime::AudioContextFactory::Create(logger, std::move(custom_audio_processor));
+
+// After std::move, you can get reference to your audio processor by session_dependencies->audio_context->GetAudioProcessor()
+
+// Create Meeting session object
+std::unique_ptr<chime::MeetingSession> meeting_session =
+    chime::MeetingSession::Create(std::move(configuration), session_dependencies);
+```

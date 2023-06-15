@@ -1,0 +1,2 @@
+Amazon Chime SDK for C++ (amazon-chime-sdk-cpp)
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved. 
