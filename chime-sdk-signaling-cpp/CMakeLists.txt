@@ -90,16 +90,12 @@ FetchContent_Declare(
 )
 
 # Use open ssl static lib
-set(OPENSSL_USE_STATIC_LIBS TRUE)
-
 set(LWS_CTEST_INTERNET_AVAILABLE OFF CACHE BOOL "enable tests for proto" FORCE)
-set(LWS_WITHOUT_TESTAPPS ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
-set(LWS_WITHOUT_TEST_SERVER ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
-set(LWS_WITHOUT_TEST_SERVER_EXTPOLL ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
-set(LWS_WITHOUT_TEST_PING ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
-set(LWS_WITHOUT_TEST_CLIENT ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
-# TODO @hokyungh: Add more options to only build library.
-set(LWS_WITH_BORINGSSL ON CACHE BOOL "Use OpenSSL fork BoringSSL" FORCE)
+set(LWS_WITHOUT_TESTAPPS ON)
+set(LWS_WITHOUT_TEST_SERVER ON)
+set(LWS_WITHOUT_TEST_SERVER_EXTPOLL ON)
+set(LWS_WITHOUT_TEST_PING ON)
+set(LWS_WITHOUT_TEST_CLIENT ON)
 FetchContent_MakeAvailable(libwebsockets)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE websockets)
