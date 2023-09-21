@@ -86,7 +86,7 @@ include(FetchContent)
 FetchContent_Declare(
         libwebsockets
         GIT_REPOSITORY https://github.com/warmcat/libwebsockets.git
-        GIT_TAG        141ebf373ca0fed7b41eb960cdbd7ab1f29490dc
+        GIT_TAG        41ff4ef8ae487fa0ab58200ef5bf8abd76491f8f
 )
 
 # Use open ssl static lib
