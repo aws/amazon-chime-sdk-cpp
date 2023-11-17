@@ -19,11 +19,11 @@ Set your environment to release
 1. On Property Pages, go to **`C/C++`**→**`General`**→**`Additional Include Directories`** and provide header path to downloaded `include` folder.
 2. On Property Pages, go to **`C/C++`**→**`Code Generation`**→**`Runtime Library`** and set **`Multi-threaded (/MT`**`)`. For Debug build, use **`Multi-threaded Debug (/MTd)`**
 3. Go to **`Linker`→`General`**→**`Additional Library Directories`** and specify the **`libamazon-chime-sdk.lib`** path.
-4. Go to **`Linker`**→**`Input`**→**`Additional Dependencies`** and add `**libamazon-chime-sdk.lib**` to it.
-5. Add system libraries `crypt32.lib`, `secur32.lib`, `strmiids.lib`, `winmm.lib`,` msdmo.lib` by following step 3.
-6.  Go to **`Linker`**→**`Input`**→**`Ignore Specific Default Libraries`** put **`LIBCMT`**. For Debug build, ignore **`MSVCRTD`** additionally.
+4. Go to **`Linker`**→**`Input`**→**`Additional Dependencies`** and add **`libamazon-chime-sdk.lib`** to it.
+5. Add system libraries `crypt32.lib`, `secur32.lib`, `strmiids.lib`, `winmm.lib`,` msdmo.lib`,`iphlpapi.lib` by following step 3.
+6.  Go to **`Linker`**→**`Input`**→**`Ignore Specific Default Libraries`** put **`LIBCMT`**. For Debug build, ignore **`LIBCMTD`** instead.
 
->NOTE: If you want to ignore the warnings on pdb, Add `/ignore:4099 `Properties->Linker->Command Line
+>NOTE: If you want to ignore the warnings on pdb, Add `/ignore:4099` Properties->Linker->Command Line
 
 ### CMake Project
 
@@ -92,7 +92,9 @@ target_link_libraries(my-demo
                       PRIVATE strmiids.lib
                       PRIVATE winmm.lib
                       PRIVATE msdmo.lib
+                      PRIVATE iphlpapi.lib
 )
+
 SET(CMAKE_EXE_LINKER_FLAGS /NODEFAULTLIB:\"LIBCMT\")
 
 ## Include Chime Media SDK header files
