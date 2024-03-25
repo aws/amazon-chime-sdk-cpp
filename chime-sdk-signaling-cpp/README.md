@@ -272,6 +272,9 @@ class MySignalingObserver: public SignalingClientObserver {
 }
 
 signaling_client.Stop();
+// Wait for OnSignalingStopped to be called
+// if you have called Run()
+signaling_client.StopRun();
 ```
 
 ## Debugging issues in C++ SDK signaling client
