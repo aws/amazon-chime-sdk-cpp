@@ -3,7 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2024-05-31
+
+### Added
+* Added VP8 codec for Windows
+
+### Fixed
+* Fix unexpected video scaling at rapid resolution changes on Windows
+* Fix a couple of memory leaks
+* Make `StartLocalAudio` and `StopLocalAudio` idempotent to prevent sending duplicate audio packets
+
 ## [0.10.1] - 2024-03-21
+
 ### Fixed
 * Fixed memory leak when trying to stop a meeting while it is still starting up
 
