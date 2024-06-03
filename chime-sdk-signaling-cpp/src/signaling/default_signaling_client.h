@@ -77,6 +77,8 @@ class DefaultSignalingClient : public SignalingClient, public SignalingTransport
   bool SendJoin();
   bool SendLeave();
 
+  void Close();
+
   // Handle frame
   void UpdateTurnCredentials(const signal_rtc::JoinAckFrame& join_ack);
   bool TurnCredentialsExpired();
