@@ -88,12 +88,12 @@ TEST_F(WebsocketSignalingTransportTest, ShouldSendBinaryPollWhenSendSignalFrame)
 
   WebsocketSignalingTransport transport{std::move(configuration), &mock_observer, std::move(factory)};
 
-  signal_rtc::SignalFrame frame;
-  frame.set_type(signal_rtc::SignalFrame_Type_JOIN);
-  signal_rtc::JoinFrame* join_frame = frame.mutable_join();
+  signal_sdk::SdkSignalFrame frame;
+  frame.set_type(signal_sdk::SdkSignalFrame_Type_JOIN);
+  signal_sdk::SdkJoinFrame* join_frame = frame.mutable_join();
   join_frame->set_max_num_of_videos(25);
   join_frame->set_protocol_version(2);
-  uint32_t flags = signal_rtc::SEND_BITRATES | signal_rtc::HAS_STREAM_UPDATE;
+  uint32_t flags = signal_sdk::HAS_STREAM_UPDATE;
   join_frame->set_flags(flags);
 
   // Unfortunately, hard to get input for the vector due to set_timestamp_ms
@@ -150,12 +150,12 @@ TEST_F(WebsocketSignalingTransportTest, ShouldCallOnSignalFrameReceivedWhenOnWeb
   WebsocketSignalingTransport transport{std::move(configuration), &mock_observer, std::move(factory)};
 
   std::string buf;
-  signal_rtc::SignalFrame frame;
-  frame.set_type(signal_rtc::SignalFrame_Type::SignalFrame_Type_AUDIO_STREAM_ID_INFO);
-  signal_rtc::AudioStreamIdInfoFrame* stream_frame = frame.mutable_audio_stream_id_info();
+  signal_sdk::SdkSignalFrame frame;
+  frame.set_type(signal_sdk::SdkSignalFrame_Type::SdkSignalFrame_Type_AUDIO_STREAM_ID_INFO);
+  signal_sdk::SdkAudioStreamIdInfoFrame* stream_frame = frame.mutable_audio_stream_id_info();
   auto* stream = stream_frame->add_streams();
   stream->set_audio_stream_id(1);
-  stream->set_profile_id("attendee-1");
+  stream->set_attendee_id("attendee-1");
   stream->set_external_user_id("external-user-1");
   auto current_ms =
       std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());

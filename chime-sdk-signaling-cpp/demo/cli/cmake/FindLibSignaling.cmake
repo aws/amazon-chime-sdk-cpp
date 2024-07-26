@@ -7,7 +7,9 @@ message(
 )
 
 list(APPEND LIB_SIGNAL_INCLUDE_DIR "${CHIME_SIGNAL_SRC}/src")
+list(APPEND LIB_SIGNAL_INCLUDE_DIR "${CHIME_SIGNAL_SRC}/build/src/proto")
 list(APPEND LIB_SIGNAL_INCLUDE_DIR "${CHIME_SIGNAL_SRC}/build/_deps/libwebsockets-src/include")
+list(APPEND LIB_SIGNAL_INCLUDE_DIR "${CHIME_SIGNAL_SRC}/build/_deps/protobuf-src/src")
 
 # Location for built library
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin" OR ${CMAKE_SYSTEM_NAME} MATCHES "Linux")

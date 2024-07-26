@@ -4,14 +4,15 @@
 #ifndef CHIME_SIGNALING_AUDIO_FRAME_ADAPTER_H_
 #define CHIME_SIGNALING_AUDIO_FRAME_ADAPTER_H_
 
-#include "proto/video_control.pb.h"
+#include "video_control_sdk.pb.h"
+
 
 namespace chime {
 class AudioFrameAdapter {
  public:
   virtual ~AudioFrameAdapter() = default;
-  virtual void OnAudioStreamIdInfo(const signal_rtc::AudioStreamIdInfoFrame& audio_stream_id_info) = 0;
-  virtual void OnAudioMetadata(const signal_rtc::AudioMetadataFrame& audio_metadata) = 0;
+  virtual void OnAudioStreamIdInfo(const signal_sdk::SdkAudioStreamIdInfoFrame& audio_stream_id_info) = 0;
+  virtual void OnAudioMetadata(const signal_sdk::SdkAudioMetadataFrame& audio_metadata) = 0;
 };
 
 }  // namespace chime

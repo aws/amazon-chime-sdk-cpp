@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17...3.20)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(LIBRARY_NAME amazon-chime-signaling-sdk-cpp-lib)
+set(LIBRARY_NAME amazon-chime-signaling-sdk-cpp)
 
 set(SIGNALING_LANGUAGES C CXX)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -16,9 +16,7 @@ project(
         LANGUAGES ${SIGNALING_LANGUAGES})
 
 # list of options available
-# Enable Address Sanitizer
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
-# Build test
 option(BUILD_TEST "Build tests" ON)
 
 if(ENABLE_ASAN)
@@ -74,23 +72,22 @@ set(SDK_SRC
         src/utils/logging.cc
         src/websocket/libwebsockets_websocket.cc
         src/websocket/default_websocket_factory.cc
-        src/proto/video_control.pb.cc)
+        src/proto/video_control_sdk.proto
+        )
 
 add_library(${LIBRARY_NAME} "${SDK_HEADERS}" "${SDK_SRC}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+include(FetchContent)
+
 
 # Libwebsocket dependency
-#find_package(LibWebsockets REQUIRED)
-include(FetchContent)
+
 FetchContent_Declare(
         libwebsockets
         GIT_REPOSITORY https://github.com/warmcat/libwebsockets.git
-        GIT_TAG        141ebf373ca0fed7b41eb960cdbd7ab1f29490dc
+        GIT_TAG        v4.3-stable
 )
-
-# Use open ssl static lib
-set(OPENSSL_USE_STATIC_LIBS TRUE)
 
 set(LWS_CTEST_INTERNET_AVAILABLE OFF CACHE BOOL "enable tests for proto" FORCE)
 set(LWS_WITHOUT_TESTAPPS ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
@@ -98,24 +95,46 @@ set(LWS_WITHOUT_TEST_SERVER ON CACHE BOOL "Don't build the libwebsocket-test-app
 set(LWS_WITHOUT_TEST_SERVER_EXTPOLL ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
 set(LWS_WITHOUT_TEST_PING ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
 set(LWS_WITHOUT_TEST_CLIENT ON CACHE BOOL "Don't build the libwebsocket-test-apps" FORCE)
-# TODO @hokyungh: Add more options to only build library.
-set(LWS_WITH_BORINGSSL ON CACHE BOOL "Use OpenSSL fork BoringSSL" FORCE)
 FetchContent_MakeAvailable(libwebsockets)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE websockets)
 
-# Protobuf
-FetchContent_Declare(
-	protobuf
-	GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
-	GIT_TAG        fde7cf7358ec7cd69e8db9be4f1fa6a5c431386a
-	SOURCE_SUBDIR  cmake
-	)
+# Protobuf dependency
 
-set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for proto" FORCE)
+FetchContent_Declare(
+    protobuf
+    GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+    # Revert to version before Abseil dependency as we haven't found a workaround for
+    # issues similar to https://github.com/protocolbuffers/protobuf/issues/12637
+    GIT_TAG        v3.21.12
+)
+set(protobuf_BUILD_TESTS OFF CACHE BOOL "Disable tests for protobuf" FORCE)
 FetchContent_MakeAvailable(protobuf)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE protobuf::libprotobuf)
+target_include_directories(${LIBRARY_NAME} PUBLIC ${Protobuf_INCLUDE_DIRS})
+
+# Generate .proto files with the current version of protobuf. These are not
+# added to SCM because in the future we will allow custom protobuf usage
+# i.e. to reuse the one in a libwebrtc build as to not duplicate symbols
+
+# Newer versions of protobuf include protobuf-generate.cmake. For now we use the one bundled
+# with cmake
+include(FindProtobuf)
+set(PROTO_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/src/proto")
+protobuf_generate(
+    TARGET ${LIBRARY_NAME}
+)
+# Include generated *.pb.h files. Since we do not upload headers to source control
+# we 'include' them without a path (e.g. '#include "video_control_sdk.pb.h'). Since
+# we expose these classes and types in external headers, we need to expose the protobuf
+# headers as well.
+target_include_directories(${LIBRARY_NAME} PUBLIC ${PROTO_OUTPUT_PATH})
+# Additional include since the generated source file will refernce the full path
+# of the generated header.
+target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+# Project configuration
 
 # Include src directory so that we can avoid .. in the header includes
 target_include_directories(${LIBRARY_NAME}
@@ -127,7 +146,6 @@ target_include_directories(
         $<INSTALL_INTERFACE:include>)
 
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
-# set flag as c++11 instead of gnu++11 for some compilers
 set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 
 # Add stack smashing protection. MSVC uses /GS which is enabled by default. See
@@ -136,11 +154,6 @@ if(NOT MSVC)
     target_compile_options(${LIBRARY_NAME} PRIVATE "-fstack-protector")
 endif()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(SDK_BINARY_NAME "${LIBRARY_NAME}.a")
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    set(SDK_BINARY_NAME "${LIBRARY_NAME}.lib")
-endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_options(${LIBRARY_NAME} PUBLIC "-ObjC")
@@ -153,20 +166,18 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
             "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-# Combine binaries
-# Currently supporting Mac and Linux
+# For downstream projects that do not use CMake, we output static
+# libraries that combine all of the dependencies.
 
 set(SDK_BINARY_LIB_NAME "libamazon_chime_signaling_sdk")
-
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(SDK_BINARY_NAME "${SDK_BINARY_LIB_NAME}.a")
 
-    # TODO @hokyungh: might be better to use mri script
     add_custom_command(
             TARGET ${LIBRARY_NAME}
             POST_BUILD
             COMMAND ar -x $<TARGET_FILE:${LIBRARY_NAME}>
-	    COMMAND ar -x $<TARGET_FILE:protobuf::libprotobuf>
+            COMMAND ar -x $<TARGET_FILE:protobuf::libprotobuf>
             COMMAND ar -x $<TARGET_FILE:websockets>
             COMMAND ar -qc ${SDK_BINARY_NAME} *.o
     )
@@ -184,7 +195,6 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     )
 endif()
 
-# Run unit test
 if (BUILD_TEST)
     include(CTest)
     enable_testing()

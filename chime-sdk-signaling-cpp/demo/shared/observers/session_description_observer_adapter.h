@@ -4,8 +4,7 @@
 #define SESSION_DESCRIPTION_OBSERVER_ADAPTER_H_
 
 #include "webrtc/api/rtc_event_log/rtc_event_log.h"
-#include "webrtc/pc/media_session.h"
-#include "webrtc/pc/session_description.h"
+#include "webrtc/api/jsep.h"
 
 // These adapters address the overlapping callback signatures of
 //   webrtc::CreateSessionDescriptionObserver and

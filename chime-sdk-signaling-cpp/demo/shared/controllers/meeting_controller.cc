@@ -20,7 +20,7 @@
 #include "webrtc/api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "webrtc/api/video_codecs/builtin_video_decoder_factory.h"
 #include "webrtc/api/video_codecs/builtin_video_encoder_factory.h"
-#include "webrtc/modules/audio_device/dummy/file_audio_device_factory.h"
+#include "webrtc/modules/audio_device/include/test_audio_device.h"
 #include "webrtc/rtc_base/thread.h"
 #include "webrtc/rtc_base/logging.h"
 #include "webrtc/api/jsep.h"
@@ -32,6 +32,8 @@
 #include "webrtc/rtc_base/ref_counted_object.h"
 #include "webrtc/api/media_stream_interface.h"
 #include "webrtc/api/rtp_parameters.h"
+#include "webrtc/api/task_queue/default_task_queue_factory.h"
+#include "webrtc/api/enable_media.h"
 
 #include <memory>
 #include <regex>
@@ -55,16 +57,23 @@ std::unique_ptr<MeetingController> MeetingController::Create(MeetingControllerCo
   SetSignalingLogLevel(configuration.log_level);
   rtc::LogMessage::AddLogToStream(dependencies.log_sink.get(), rtc::LS_VERBOSE);
 
-  webrtc::FileAudioDeviceFactory::SetFilenamesToUse(configuration.input_audio_filename.c_str(),
-                                                    configuration.output_audio_filename.c_str());
+
+  webrtc::PeerConnectionFactoryDependencies peer_connection_factory_dependencies;
+  peer_connection_factory_dependencies.signaling_thread = dependencies.signaling_thread.get();
+  peer_connection_factory_dependencies.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
+  webrtc::EnableMedia(peer_connection_factory_dependencies);
+
+  peer_connection_factory_dependencies.video_encoder_factory = webrtc::CreateBuiltinVideoEncoderFactory();
+  peer_connection_factory_dependencies.video_decoder_factory = webrtc::CreateBuiltinVideoDecoderFactory();
+  peer_connection_factory_dependencies.audio_encoder_factory = webrtc::CreateBuiltinAudioEncoderFactory();
+  peer_connection_factory_dependencies.audio_decoder_factory = webrtc::CreateBuiltinAudioDecoderFactory();
+  peer_connection_factory_dependencies.adm = webrtc::TestAudioDeviceModule::Create(peer_connection_factory_dependencies.task_queue_factory.get(),
+      webrtc::TestAudioDeviceModule::CreatePulsedNoiseCapturer(/* amplitude */ 32000, /* freq */ 48000),
+      webrtc::TestAudioDeviceModule::CreateDiscardRenderer(/* freq */ 48000));
 
   // To stay in the meeting, Chime's audio server requires a consistent stream of audio packets at all times.
   //   For more ways to send dummy audio see webrtc::TestAudioDeviceModule (omitted for brevity).
-  dependencies.peer_connection_factory = webrtc::CreatePeerConnectionFactory(
-      nullptr /* network_thread */, nullptr /* worker_thread */, dependencies.signaling_thread.get(),
-      nullptr /* default adm */, webrtc::CreateBuiltinAudioEncoderFactory(), webrtc::CreateBuiltinAudioDecoderFactory(),
-      webrtc::CreateBuiltinVideoEncoderFactory(), webrtc::CreateBuiltinVideoDecoderFactory(), nullptr /* audio_mixer */,
-      nullptr /* audio_processing */);
+  dependencies.peer_connection_factory = webrtc::CreateModularPeerConnectionFactory(std::move(peer_connection_factory_dependencies));
 
   return std::make_unique<MeetingController>(configuration, std::move(dependencies));
 }
@@ -251,7 +260,7 @@ void MeetingController::SetExternalVideoSource(rtc::scoped_refptr<webrtc::VideoT
   rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> capturer = local_video_source_;
 
   // Create video track
-  auto local_track = peer_connection_factory_->CreateVideoTrack(kVideoCameraLabel.c_str(), capturer);
+  auto local_track = peer_connection_factory_->CreateVideoTrack(capturer, kVideoCameraLabel);
   local_track->set_content_hint(content_hint);
 
   if (!IsValidTransceiver(local_video_transceiver_)) {
@@ -269,7 +278,7 @@ void MeetingController::SetExternalVideoSource(rtc::scoped_refptr<webrtc::VideoT
     local_video_transceiver_ = transceiver_or_err.MoveValue();
   } else {
     RTC_LOG(LS_INFO) << "Setting Track";
-    local_video_transceiver_->sender()->SetTrack(local_track);
+    local_video_transceiver_->sender()->SetTrack(local_track.get());
   }
 }
 

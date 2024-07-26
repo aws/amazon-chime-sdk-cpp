@@ -4,14 +4,15 @@
 
 #include "signaling_error.h"
 #include "signaling_close_event.h"
-#include "proto/video_control.pb.h"
+#include "video_control_sdk.pb.h"
+
 
 namespace chime {
 
 class SignalingTransportObserver {
  public:
-  // signal_rtc comes from protobuf definition
-  virtual void OnSignalFrameReceived(const signal_rtc::SignalFrame& frame) = 0;
+  // signal_sdk comes from protobuf definition
+  virtual void OnSignalFrameReceived(const signal_sdk::SdkSignalFrame& frame) = 0;
   virtual void OnSignalingConnected() = 0;
   virtual void OnSignalingErrorReceived(const SignalingError& error) = 0;
   virtual void OnSignalingClosed(const SignalingCloseEvent& event) = 0;

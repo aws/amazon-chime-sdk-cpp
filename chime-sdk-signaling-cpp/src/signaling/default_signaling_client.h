@@ -63,7 +63,7 @@ class DefaultSignalingClient : public SignalingClient, public SignalingTransport
   }
 
   // Observer methods
-  void OnSignalFrameReceived(const signal_rtc::SignalFrame& frame) override;
+  void OnSignalFrameReceived(const signal_sdk::SdkSignalFrame& frame) override;
   void OnSignalingConnected() override;
   void OnSignalingErrorReceived(const SignalingError& error) override;
   void OnSignalingClosed(const SignalingCloseEvent& event) override;
@@ -80,11 +80,11 @@ class DefaultSignalingClient : public SignalingClient, public SignalingTransport
   void Close();
 
   // Handle frame
-  void UpdateTurnCredentials(const signal_rtc::JoinAckFrame& join_ack);
+  void UpdateTurnCredentials(const signal_sdk::SdkJoinAckFrame& join_ack);
   bool TurnCredentialsExpired();
-  void HandleIndexFrame(const signal_rtc::IndexFrame& index_frame);
-  void HandleSubAckFrame(const signal_rtc::SubscribeAckFrame& subscribe_ack_frame);
-  void HandleDataMessageFrame(const signal_rtc::DataMessageFrame& data_message_frame);
+  void HandleIndexFrame(const signal_sdk::SdkIndexFrame& index_frame);
+  void HandleSubAckFrame(const signal_sdk::SdkSubscribeAckFrame& subscribe_ack_frame);
+  void HandleDataMessageFrame(const signal_sdk::SdkDataMessageFrame& data_message_frame);
 
   std::unique_ptr<SignalingTransport> signaling_transport_;
   std::unique_ptr<AudioFrameAdapter> audio_frame_adapter_;

@@ -11,7 +11,7 @@
 #include "signaling/signaling_client_start_info.h"
 #include "utils/volume_update.h"
 #include "utils/signal_strength_update.h"
-#include "proto/video_control.pb.h"
+
 
 #include <map>
 

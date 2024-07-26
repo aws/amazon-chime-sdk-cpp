@@ -4,6 +4,7 @@
 #define CHIME_SIGNALING_TURN_CREDENTIAL_H_
 
 #include <vector>
+#include <cstdint>
 
 namespace chime {
 

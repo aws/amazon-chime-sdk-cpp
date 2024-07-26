@@ -42,7 +42,7 @@ void FakeVideoSource::Start(int width, int height, int fps) {
       std::this_thread::sleep_for(std::chrono::nanoseconds(kNsWaitInterval));
       rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
       if (frame_count > fps) {
-        buffer->SetBlack(buffer);
+        buffer->SetBlack(buffer.get());
       } else {
         buffer->InitializeData();
       }

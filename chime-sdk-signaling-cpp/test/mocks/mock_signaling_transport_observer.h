@@ -11,7 +11,7 @@ using namespace chime;
 
 class MockSignalingTransportObserver : public SignalingTransportObserver {
  public:
-  MOCK_METHOD(void, OnSignalFrameReceived, (const signal_rtc::SignalFrame& frame), (override));
+  MOCK_METHOD(void, OnSignalFrameReceived, (const signal_sdk::SdkSignalFrame& frame), (override));
   MOCK_METHOD(void, OnSignalingConnected, (), (override));
   MOCK_METHOD(void, OnSignalingErrorReceived, (const SignalingError& error), (override));
   MOCK_METHOD(void, OnSignalingClosed, (const SignalingCloseEvent& event), (override));

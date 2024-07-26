@@ -59,7 +59,7 @@ include(FetchContent)
 FetchContent_Declare(
     cxxopts
     GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-    GIT_TAG        8185e6bb3a5d64717a5456903c71efc005ceb711
+    GIT_TAG        v3.2.1
 )
 
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "Enable CXXOPS TEST" FORCE)
@@ -103,11 +103,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_compile_definitions(${CLI_NAME} PUBLIC WEBRTC_LINUX)
     target_compile_definitions(${CLI_NAME} PUBLIC WEBRTC_POSIX)
-    target_compile_definitions(${CLI_NAME} PUBLIC NDEBUG)
     target_compile_definitions(${CLI_NAME} PUBLIC WEBRTC_APM_DEBUG_DUMP=0)
 endif()
-
-target_link_options(${CLI_NAME} PUBLIC "-stdlib=libc++")
 
 find_package(LibSignaling REQUIRED)
 target_link_libraries(${CLI_NAME}
@@ -115,16 +112,14 @@ target_link_libraries(${CLI_NAME}
         LibSignaling::LibSignaling)
 
 find_package(LibWebRTC REQUIRED)
-target_link_libraries(${CLI_NAME}
-    PUBLIC
-    LibWebRTC::LibWebRTC)
+target_link_libraries(${CLI_NAME} PUBLIC LibWebRTCExtras::LibWebRTCExtras)
+target_link_libraries(${CLI_NAME} PUBLIC LibWebRTC::LibWebRTC)
 
 if (NOT MSVC)
     target_compile_options(${CLI_NAME} PRIVATE "-fno-rtti")
 endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    # find_package(OpenSSL REQUIRED)
     target_link_libraries(${CLI_NAME}
             PUBLIC 
             "-framework CoreFoundation"
@@ -151,4 +146,3 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
             aws-cpp-sdk-monitoring
             PUBLIC cxxopts)
 endif()
-

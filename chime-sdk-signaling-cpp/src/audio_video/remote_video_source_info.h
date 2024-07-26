@@ -5,6 +5,8 @@
 
 #include "utils/attendee.h"
 
+#include <cstdint>
+
 namespace chime {
 /**
  * Defines remote video configuration, which builders can modify

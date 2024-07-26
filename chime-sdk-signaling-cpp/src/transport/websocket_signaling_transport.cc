@@ -30,13 +30,13 @@ void WebsocketSignalingTransport::Stop() {
   websocket_->Close();
 }
 
-bool WebsocketSignalingTransport::SendSignalFrame(signal_rtc::SignalFrame& frame) {
+bool WebsocketSignalingTransport::SendSignalFrame(signal_sdk::SdkSignalFrame& frame) {
   const auto current_ms =
       std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
   frame.set_timestamp_ms(current_ms.count());
 
   LogLevel signaling_log_level =
-      frame.type() != signal_rtc::SignalFrame::CLIENT_METRIC ? LogLevel::kInfo : LogLevel::kVerbose;
+      frame.type() != signal_sdk::SdkSignalFrame::CLIENT_METRIC ? LogLevel::kInfo : LogLevel::kVerbose;
   CHIME_LOG(signaling_log_level, "Sending control message: type=" + signal_frame_type_strings[frame.type()]);
 
   std::string buff;
@@ -101,7 +101,7 @@ void WebsocketSignalingTransport::OnWebsocketError(WebsocketErrorStatus error) {
 
 void WebsocketSignalingTransport::OnWebsocketBinaryReceived(const std::vector<uint8_t>& data) {
   if (data.size() < 2) return;
-  signal_rtc::SignalFrame signal_frame;
+  signal_sdk::SdkSignalFrame signal_frame;
   // First byte is for type. This is currently always value 2.
   if (!signal_frame.ParseFromArray(&data[1], static_cast<int>(data.size() - 1))) {
     CHIME_LOG(LogLevel::kError, "Unable to cast to signaling frame")
@@ -110,8 +110,8 @@ void WebsocketSignalingTransport::OnWebsocketBinaryReceived(const std::vector<ui
 
   LogLevel log_level = LogLevel::kInfo;
 
-  if (signal_frame.type() == signal_rtc::SignalFrame::BITRATES ||
-      signal_frame.type() == signal_rtc::SignalFrame::AUDIO_METADATA) {
+  if (signal_frame.type() == signal_sdk::SdkSignalFrame::BITRATES ||
+      signal_frame.type() == signal_sdk::SdkSignalFrame::AUDIO_METADATA) {
     log_level = LogLevel::kVerbose;
   }
 
