@@ -16,7 +16,6 @@ struct MeetingControllerConfiguration {
   MeetingSessionConfiguration meeting_configuration;
 
   // Audio files are 48kHz raw stereo pcm.
-  std::string input_audio_filename = "";
   std::string output_audio_filename = "media_out/remote_audio_recording.pcm";
   std::string log_level = "info";
 };

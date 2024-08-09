@@ -26,7 +26,7 @@
 
 using namespace chime;
 
-MeetingSessionConfiguration createMeetingConfiguration(const cxxopts::ParseResult& result) {
+std::optional<MeetingSessionConfiguration> createMeetingConfiguration(const cxxopts::ParseResult& result) {
     auto attendee_id = result["attendee_id"].as<std::string>();
     auto external_user_id = result["external_user_id"].as<std::string>();
     auto join_token = result["join_token"].as<std::string>();
@@ -85,19 +85,18 @@ int main(int argc, char* argv[]) {
   std::optional<MeetingSessionConfiguration> meeting_configuration = createMeetingConfiguration(result);
   if (!meeting_configuration) {
       std::cout << "Could not create meeting configuration. You may be missing a value" << std::endl;
-      return;
+      return 0;
   }
 
   SignalingClientConfiguration signaling_configuration;
-  signaling_configuration.meeting_configuration = meeting_configuration;
+  signaling_configuration.meeting_configuration = *meeting_configuration;
 
   DefaultSignalingDependencies signaling_dependencies {};
   auto client =
       DefaultSignalingClientFactory::CreateSignalingClient(signaling_configuration, std::move(signaling_dependencies));
 
   MeetingControllerConfiguration configuration;
-  configuration.meeting_configuration = meeting_configuration;
-  configuration.input_audio_filename = result["send_audio_file_name"].as<std::string>();
+  configuration.meeting_configuration = *meeting_configuration;
   configuration.log_level = result["log_level"].as<std::string>();
   auto session_description_observer = std::make_unique<SessionDescriptionObserver>();
   std::shared_ptr<MeetingController> controller
