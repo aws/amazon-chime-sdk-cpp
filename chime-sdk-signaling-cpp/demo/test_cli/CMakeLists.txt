@@ -70,7 +70,7 @@ FetchContent_MakeAvailable(cxxopts)
 FetchContent_Declare(
     aws-sdk-cpp
     GIT_REPOSITORY https://github.com/aws/aws-sdk-cpp.git
-    GIT_TAG        49bca4c42af5927cc6a7f49a0633375b9d000928
+    GIT_TAG        1.11.380
 )
 
 
@@ -130,7 +130,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
             cxxopts
             aws-cpp-sdk-core
             aws-cpp-sdk-monitoring
-            # OpenSSL::SSL
             )
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(
