@@ -164,8 +164,8 @@ The basical state machine of your application should be:
 
 1. Observe and handle available remote video sources
 2. Configure local and remote media in WebRTC implementation
-3. Create and set local offer SDPin WebRTC implementation.
-4. Configre the local and remote media in the Signaling Client matching WebRTC configuration
+3. Create and set local offer SDP in WebRTC implementation.
+4. Configure the local and remote media in the Signaling Client matching WebRTC configuration
 5. Set local offer SDP on the Signaling Client
 6. Call `SendUpdates`
 7. When the Signaling Client provides remote answer SDP via `OnRemoteDescriptionReceived`, set it on the WebRTC implementation
@@ -229,9 +229,12 @@ class MySignalingClientManager: public chime::SignalingClientObserver, public Cr
 
 
   virtual void OnIceCandidate(const IceCandidateInterface* candidate) override {
+    if (!candidate) return;
+
     // We recommend immediately sending updates when new TURN candidates are received
     std::string url = candidate->server_url();
-    if (!candidate || url.find("turn") == std::string::npos) return;
+    if (url.find("turn") == std::string::npos) return;
+
     SendUpdates();
   }
 
@@ -252,7 +255,7 @@ class MySignalingClientManager: public chime::SignalingClientObserver, public Cr
 
 #### Adding local audio and video
 
-Once state changes are wired up, you can start by adding local and remote audio local video as desired using `AddOrUpdateLocalVideo`, or `AddLocalAudio`. Note that these APIs require the MIDs from created WebRTC media sections/tranceivers. If you using `libwebrtc` and are not familiar with how to create tranceivers or obtain their MIDs, see the demo for examples.
+Once state changes are wired up, you can start by adding local audio/video using `AddOrUpdateLocalVideo`, or `AddLocalAudio`. Note that these APIs require the MIDs from created WebRTC media sections/tranceivers. If you using `libwebrtc` and are not familiar with how to create tranceivers or obtain their MIDs, see the demo for examples.
 
 ```c++
 class MySignalingClientManager: /* */ {
@@ -307,13 +310,13 @@ class MySignalingClientManager /* ... */ {
     controller_->peer_connection_->CreateOffer(/* ... */);
   }
 
-    void SendUpdates() {
-      if (/* New remote video transceivers have been added */) {
-        // Collect all new or updated remote video subscriptions
-        signaling_client->UpdateRemoteVideoSubscriptions(/* ... */)
-      }
+  void SendUpdates() {
+    if (/* New remote video transceivers have been added */) {
+      // Collect all new or updated remote video subscriptions
+      signaling_client->UpdateRemoteVideoSubscriptions(/* ... */)
+    }
 
-      // ... Existing code
+    // ... Existing code
   }
 }
 ```

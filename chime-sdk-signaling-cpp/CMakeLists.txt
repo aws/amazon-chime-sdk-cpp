@@ -130,7 +130,7 @@ protobuf_generate(
 # we expose these classes and types in external headers, we need to expose the protobuf
 # headers as well.
 target_include_directories(${LIBRARY_NAME} PUBLIC ${PROTO_OUTPUT_PATH})
-# Additional include since the generated source file will refernce the full path
+# Additional include since the generated source file will reference the full path
 # of the generated header.
 target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

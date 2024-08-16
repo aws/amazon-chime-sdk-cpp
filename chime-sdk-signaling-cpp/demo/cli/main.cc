@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
         cxxopts::value<std::string>()->default_value(""))(
         "h,audio_host_url", "Audio host URL [JoinInfo.Meeting.MediaPlacement.AudioHostUrl]",
         cxxopts::value<std::string>()->default_value(""))(
-        "s,signaling_url", "Signaling Url URL [JoinInfo.Meeting.MediaPlacement.SignalingUrl]",
+        "s,signaling_url", "Signaling URL [JoinInfo.Meeting.MediaPlacement.SignalingUrl]",
         cxxopts::value<std::string>()->default_value(""))("a,attendee_id",
                                                           "Attendee ID [JoinInfo.Attendee.Attendee.AttendeeId]",
                                                           cxxopts::value<std::string>()->default_value(""))(

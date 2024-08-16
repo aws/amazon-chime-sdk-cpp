@@ -1,6 +1,6 @@
 # Amazon Chime SDK for C++ Signaling Client Demo Application
 
-This documentation was last tested with Ubuntu 24.04 LTS (x86_64) and M128 `libwebrtc`. It should be compatable with later versions of `libwebrtc`, and the commands should translate trivially to other *modern* platforms (e.g. Amazon Linux 2023).
+This documentation was last tested with Ubuntu 24.04 LTS (x86_64) and M128 `libwebrtc`. It should be compatible with later versions of `libwebrtc`, and the commands should translate trivially to other *modern* platforms (e.g. Amazon Linux 2023).
 
 It is recommended to use the latest AMIs possible as `libwebrtc` does not attempt to maintain backwards compatability.
 
@@ -16,14 +16,14 @@ After the instance is launched, you should be able to select the instance in the
 
 ### 2. Setup workspace
 
-The rest of the tutorial will assume `CHIME_DEMO_DIRECTORY` is set.
+The rest of the tutorial will assume `CHIME_SDK_DEMO_DIRECTORY` is set.
 
 ```shell
 mkdir chime-sdk-signaling-cpp-demo
 cd chime-sdk-signaling-cpp-demo
 # You may want to add something similar with the full path
 # to your '.bash_profile', '.zshrc', etc.
-export CHIME_DEMO_DIRECTORY=$(pwd)
+export CHIME_SDK_DEMO_DIRECTORY=$(pwd)
 ```
 
 ### 2. Fetch `depot_tools` and `libwebrtc`
@@ -31,7 +31,7 @@ export CHIME_DEMO_DIRECTORY=$(pwd)
 This is excerpted from [WebRTC Development Prerequisite](https://webrtc.github.io/webrtc-org/native-code/development/prerequisite-sw/). The `gclient sync` flags come from [Chromium documentation](https://chromium.googlesource.com/chromium/src.git/+/HEAD/docs/building_old_revisions.md#sync-dependencies).
 
 ```shell
-cd $CHIME_DEMO_DIRECTORY
+cd $CHIME_SDK_DEMO_DIRECTORY
 mkdir webrtc-build
 cd webrtc-build
 
@@ -39,7 +39,7 @@ cd webrtc-build
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 # The rest of instructions assume that depot_tools is in PATH. You
 # may want to add this to your '.bash_profile', '.zshrc', etc.
-export PATH=$CHIME_DEMO_DIRECTORY/webrtc-build/depot_tools:$PATH
+export PATH=$CHIME_SDK_DEMO_DIRECTORY/webrtc-build/depot_tools:$PATH
 
 fetch --nohooks webrtc
 # We use a slightly roundabout way of reverting to a specific version
@@ -58,7 +58,7 @@ cd src
 We do not build tests because they often do not interact well with `use_custom_libcxx`. Since the demo uses some test components, we will extend the build files to support a target that includes what we need.
 
 ```shell
-cd $CHIME_DEMO_DIRECTORY/webrtc-build/src
+cd $CHIME_SDK_DEMO_DIRECTORY/webrtc-build/src
 
 cat <<EOL >> BUILD.gn
 rtc_static_library("webrtc_extras") {
@@ -78,7 +78,7 @@ EOL
 We can then build our static libraries. The most important flag below is `use_custom_libcxx`. `libwebrtc`, by default, builds with a prebuilt `clang` and `libc++`. The STL usage may cause downstream issues, so `use_custom_libcxx=false` can disable that behavior.
 
 ```shell
-cd $CHIME_DEMO_DIRECTORY/webrtc-build/src
+cd $CHIME_SDK_DEMO_DIRECTORY/webrtc-build/src
 
 # Explanation of some additional flags:
 # * Set `rtc_use_h264=false` to avoid building codecs
@@ -121,13 +121,13 @@ sudo apt install ninja-build -y
 To avoid downstream linking issues, and avoid relying on the often broken `rtc_build_ssl=false` flag, we simply use the `BoringSSL` implemenation bundled with the current version of libwebrtc. Note that the library currently has a small incompatability with `libwebsockets` that can be avoided with `LWS_HAVE_OPENSSL_STACK=OFF`.
 
 ```shell
-cd $CHIME_DEMO_DIRECTORY
+cd $CHIME_SDK_DEMO_DIRECTORY
 git clone https://github.com/aws/amazon-chime-sdk-cpp.git
 cd amazon-chime-sdk-cpp/chime-sdk-signaling-cpp
 
 # Note this is statically linked into the main libwebrtc library!
-export BORING_SSL_LIB=$CHIME_DEMO_DIRECTORY/webrtc-build/webrtc/out/Default/obj/libwebrtc.a
-export BORING_SSL_INCLUDE_DIR=$CHIME_DEMO_DIRECTORY/webrtc-build/webrtc/third_party/boringssl/src/include
+export BORING_SSL_LIB=$CHIME_SDK_DEMO_DIRECTORY/webrtc-build/webrtc/out/Default/obj/libwebrtc.a
+export BORING_SSL_INCLUDE_DIR=$CHIME_SDK_DEMO_DIRECTORY/webrtc-build/webrtc/third_party/boringssl/src/include
 cmake -S . -B build \
     -DLWS_OPENSSL_LIBRARIES=$BORING_SSL_LIB \
     -DLWS_OPENSSL_INCLUDE_DIRS=$BORING_SSL_INCLUDE_DIR \
@@ -151,7 +151,7 @@ you likely have not configured your SSL libraries correctly.
 This is relatively straightforward assuming the above steps have been completed correctly.
 
 ```shell
-cd $CHIME_DEMO_DIRECTORY/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli
+cd $CHIME_SDK_DEMO_DIRECTORY/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli
 cmake -S . -B build -GNinja
 cmake --build build
 ```
@@ -163,7 +163,7 @@ The binary `my_cli` requires values collected from [CreateMeeting](https://docs.
 It is recommended to run a [serverless demo](https://github.com/aws/amazon-chime-sdk-js/blob/main/demos/serverless/README.md), since that allows web clients to join at the same time. `run_with_serverless_demo.sh` will query a deployed serverless demo for credentials and use those instantiate the CLI.
 
 ```shell
-cd $CHIME_DEMO_DIRECTORY/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp
+cd $CHIME_SDK_DEMO_DIRECTORY/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli
 
 # Will be outputted by deployment, e.g. https://XXXXXX.execute-api.us-east-1.amazonaws.com/Prod/
 export SERVERLESS_DEMO_URL= # ... 
