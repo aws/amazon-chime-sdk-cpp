@@ -1,0 +1,57 @@
+name: Bug Report Form
+description: Report unexpected behavior during a meeting session here
+body:
+  - type: input
+    id: subproject
+    attributes:
+      label: Is this an issue with the Amazon Chime SDK for C++ or with the Amazon Chime SDK for C++ Signaling Client?
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened and what did you expect to happen?
+      description: |
+        Observed problem and expected result.
+    validations:
+      required: true
+  - type: checkboxes
+    id: existing-resources-check
+    attributes:
+      label: Have you reviewed our existing documentation?
+      description: Please check all resources as your issue may have been addressed before.
+      options:
+      - label: GitHub [issues](https://github.com/aws/amazon-chime-sdk-cpp/issues)
+        required: true
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Reproduction steps
+      description: Steps to reproduce this issue.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Library version
+      description: What version of the Amazon Chime SDK for C++ or Amazon Chime SDK for C++ Signaling Client are you running?
+    validations:
+      required: true
+  - type: textarea
+    id: meeting-attendee-ids
+    attributes:
+      label: Meeting and Attendee ID Information.
+      description: Provide specific meeting and attendee ID if you have.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Client logs
+      description: |
+        Please attach logs with timestamps to the report from *before* the session started up until the point at which the unexpected behavior occurred.
+        For multi-participant calls, attach a log file for each participant if possible.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!

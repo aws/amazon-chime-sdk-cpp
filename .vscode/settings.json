@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.Makefile": "makefile",
+        "algorithm": "cpp",
+        "optional": "cpp"
+    }
+}

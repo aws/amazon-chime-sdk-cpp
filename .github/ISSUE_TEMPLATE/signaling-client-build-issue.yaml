@@ -1,0 +1,64 @@
+name: Build Failure Report
+description: Report unexpected build failures with the project
+body:
+  - type: input
+    id: subproject
+    attributes:
+      label: Is this an issue with the Amazon Chime SDK for C++ or with the Amazon Chime SDK for C++ Signaling Client?
+    validations:
+      required: true
+  - type: checkboxes
+    id: existing-resources-check
+    attributes:
+      label: Have you reviewed our existing documentation?
+      description: Please check all resources as your issue may have been addressed before.
+      options:
+      - label: GitHub [issues](https://github.com/aws/amazon-chime-sdk-cpp/issues)
+        required: true
+      - label: README [page](https://github.com/aws/amazon-chime-sdk-cpp/tree/main/chime-sdk-signaling-cpp)
+        required: true
+  - type: input
+    id: platforms
+    attributes:
+      label: What platforms are you seeing the problem on?
+    validations:
+      required: true
+  - type: textarea
+    id: build-command
+    attributes:
+      label: Build command.
+      description: What `cmake` command was used to build the project? If this issue is downstream of the build, please explain your setup.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies-webrtc
+    attributes:
+      label: WebRTC Dependency
+      description: What WebRTC implementation is being used, and which version?
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies-ssl
+    attributes:
+      label: SSL Dependency
+      description: What SSL libary is being used, and which version? Was it installed using a package manager, or built from source?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Amazon Chime SDK for C++ Signaling Client version
+      description: What commit/tag of our Amazon Chime SDK for C++ Signaling Client are you trying to build?
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error Log
+      description: Please provide the error. If possible, attach the entire build log to the issue after posting.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
