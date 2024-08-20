@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17...3.20)
+cmake_minimum_required(VERSION 3.17)
 
 project(AmazonChimeSignalingSdkCppCli VERSION 0.1.0
         DESCRIPTION "Cli for Amazon Chime's C++ Signaling SDK"
@@ -57,7 +57,7 @@ include(FetchContent)
 FetchContent_Declare(
     cxxopts
     GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-    GIT_TAG        8185e6bb3a5d64717a5456903c71efc005ceb711
+    GIT_TAG        v3.2.1
 )
 
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "Enable CXXOPS TEST" FORCE)
@@ -74,10 +74,7 @@ target_include_directories(
 
 target_compile_definitions(${CLI_NAME} PUBLIC WEBRTC_LINUX)
 target_compile_definitions(${CLI_NAME} PUBLIC WEBRTC_POSIX)
-target_compile_definitions(${CLI_NAME} PUBLIC NDEBUG)
 target_compile_definitions(${CLI_NAME} PUBLIC WEBRTC_APM_DEBUG_DUMP=0)
-
-target_link_options(${CLI_NAME} PUBLIC "-stdlib=libc++")
 
 find_package(LibSignaling REQUIRED)
 target_link_libraries(${CLI_NAME}
@@ -85,9 +82,8 @@ target_link_libraries(${CLI_NAME}
         LibSignaling::LibSignaling)
 
 find_package(LibWebRTC REQUIRED)
-target_link_libraries(${CLI_NAME}
-        PUBLIC
-        LibWebRTC::LibWebRTC)
+target_link_libraries(${CLI_NAME} PUBLIC LibWebRTCExtras::LibWebRTCExtras)
+target_link_libraries(${CLI_NAME} PUBLIC LibWebRTC::LibWebRTC)
 
 if (NOT MSVC)
     target_compile_options(${CLI_NAME} PRIVATE "-fno-rtti")
@@ -112,4 +108,3 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
             PUBLIC z
             PUBLIC cxxopts)
 endif()
-

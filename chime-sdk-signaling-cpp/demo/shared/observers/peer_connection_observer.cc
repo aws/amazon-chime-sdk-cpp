@@ -19,10 +19,12 @@ using namespace chime;
 PeerConnectionObserver::PeerConnectionObserver(MeetingController* controller) : controller_(controller) {}
 
 void PeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
-  std::string url = candidate->server_url();
-  if (!candidate || url.find("turn") == std::string::npos) return;
-  RTC_LOG(LS_INFO) << "OnIceCandidate. Url: " << url;
+  if (!candidate) return;
 
+  std::string url = candidate->server_url();
+  RTC_LOG(LS_INFO) << "OnIceCandidate. Url: " << url;
+  // We immediately sending updates when new TURN candidates are received
+  if (url.find("turn") == std::string::npos) return;
   controller_->SendUpdates();
 }
 
@@ -72,5 +74,3 @@ void PeerConnectionObserver::OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverIn
   controller_->mid_to_remote_video_sinks_[transceiver->mid().value()] = std::move(video_sink);
   RTC_LOG(LS_INFO) << "OnTrack called for video track with track label " << video_track->id();
 }
-
-

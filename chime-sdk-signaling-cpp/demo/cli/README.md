@@ -1,121 +1,177 @@
 # Amazon Chime SDK for C++ Signaling Client Demo Application
 
-> Note: This documentation is written with Ubuntu 18.04 (x86_64) and M99 WebRTC.
+This documentation was last tested with Ubuntu 24.04 LTS (x86_64) and M128 `libwebrtc`. It should be compatible with later versions of `libwebrtc`, and the commands should translate trivially to other *modern* platforms (e.g. Amazon Linux 2023).
+
+It is recommended to use the latest AMIs possible as `libwebrtc` does not attempt to maintain backwards compatability.
+
+While we will keep a regular cadence of updating this demo, please cut an issue (or make a PR) if it fails on the latest version of `libwebrtc` or the latest version of your build platform. We may not be able to provide support for older platforms (e.g AL2) which may require pinning `libwebrtc` and `depot_tools` versions, or linking against Chromium provided STL in downstream builds.
 
 ## Building Demo Application
 
-### 1. Create Ubuntu 18.04 (x86_64) EC2 Instance 
+### 1. Create and Log Into Ubuntu (x86_64) EC2 Instance
 
-Use [EC2](https://aws.amazon.com/ec2/) to create [Ubuntu](https://ubuntu.com/aws) instance.
+Open the EC2 console for your account, and click **Launch Instances**. Select the [Ubuntu](https://ubuntu.com/aws) AMI, and pick a powerful enough instance (e.g. 'c7i.8xlarge') that builds will not take too long. Add at least 100 GB of storage for the `libwebrtc` build (note the built application will be much smaller in size).
 
-Make sure to give at least 100 GB of storage.
+After the instance is launched, you should be able to select the instance in the EC2 console, click 'Connect', and follow instructions to gain access to the instance.
 
-### 2. Install necessary library for WebRTC
+### 2. Setup workspace
 
-This is excerpted from [WebRTC Development Prerequisite](https://webrtc.github.io/webrtc-org/native-code/development/prerequisite-sw/)
+The rest of the tutorial will assume `CHIME_SDK_DEMO_DIRECTORY` is set.
 
+```shell
+mkdir chime-sdk-signaling-cpp-demo
+cd chime-sdk-signaling-cpp-demo
+# You may want to add something similar with the full path
+# to your '.bash_profile', '.zshrc', etc.
+export CHIME_SDK_DEMO_DIRECTORY=$(pwd)
 ```
-cd ~ && mkdir webrtc-build && cd webrtc-build &&\
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git &&\
-export PATH=$HOME/webrtc-build/depot_tools:$PATH &&\
-fetch --nohooks webrtc &&\
-cd src &&\
-git checkout -b _my__m99_branch refs/remotes/branch-heads/4844 &&\
-cd .. &&\
-gclient sync &&\
-gclient sync -D &&\
-cd src &&\
+
+### 2. Fetch `depot_tools` and `libwebrtc`
+
+This is excerpted from [WebRTC Development Prerequisite](https://webrtc.github.io/webrtc-org/native-code/development/prerequisite-sw/). The `gclient sync` flags come from [Chromium documentation](https://chromium.googlesource.com/chromium/src.git/+/HEAD/docs/building_old_revisions.md#sync-dependencies).
+
+```shell
+cd $CHIME_SDK_DEMO_DIRECTORY
+mkdir webrtc-build
+cd webrtc-build
+
+# Pull depot_tools. This package does not need to be built
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+# The rest of instructions assume that depot_tools is in PATH. You
+# may want to add this to your '.bash_profile', '.zshrc', etc.
+export PATH=$CHIME_SDK_DEMO_DIRECTORY/webrtc-build/depot_tools:$PATH
+
+fetch --nohooks webrtc
+# We use a slightly roundabout way of reverting to a specific version
+# of libwebrtc.
+cd src
+git checkout -b M128 refs/remotes/branch-heads/6613
+cd ..
+gclient sync -D --force --reset --with_branch_heads
+cd src
+# Must be done regardless of version
 ./build/install-build-deps.sh
 ```
 
-### 3. Install CMake
-Install CMake that is used for building Amazon Chime SDK for C++ signaling client.
+### 3. Build `libwebrtc`
+
+We do not build tests because they often do not interact well with `use_custom_libcxx`. Since the demo uses some test components, we will extend the build files to support a target that includes what we need.
+
+```shell
+cd $CHIME_SDK_DEMO_DIRECTORY/webrtc-build/src
+
+cat <<EOL >> BUILD.gn
+rtc_static_library("webrtc_extras") {
+  visibility = [ "//:default" ]
+  sources = []
+  complete_static_lib = true
+  suppressed_configs += [ "//build/config/compiler:thin_archive" ]
+
+  deps = [
+    "api:enable_media_with_defaults",
+    "modules/audio_device:test_audio_device_module",
+  ]
+}
+EOL
 ```
-cd ~ &&\
-wget https://github.com/Kitware/CMake/releases/download/v3.22.3/cmake-3.22.3.tar.gz &&\
-tar -xzf cmake-3.22.3.tar.gz &&\
-cd cmake-3.22.3 &&\
-./bootstrap &&\
-make &&\
-sudo make install
-```
-### 4. Build the WebRTC
-```
-export PATH=$HOME/webrtc-build/depot_tools:$PATH &&\
-cd $HOME/webrtc-build/src &&\
-gn_args='is_debug=false
+
+We can then build our static libraries. The most important flag below is `use_custom_libcxx`. `libwebrtc`, by default, builds with a prebuilt `clang` and `libc++`. The STL usage may cause downstream issues, so `use_custom_libcxx=false` can disable that behavior.
+
+```shell
+cd $CHIME_SDK_DEMO_DIRECTORY/webrtc-build/src
+
+# Explanation of some additional flags:
+# * Set `rtc_use_h264=false` to avoid building codecs
+#   that may have problematic licenses.
+# * Set 'rtc_enable_protobuf=false' to avoid downstream duplicate symbol issues.
+# * Set 'rtc_include_pulse_audio=false' to maximize portability.
+# * Set 'rtc_include_tests=false' avoids building some files with STL incompatibilities when 'use_custom_libcxx=false' is set.
+#
+# Note you may want to set 'is_debug=false' for production builds
+gn_args='target_os="linux" 
+        rtc_use_h264=false
         rtc_include_tests=false 
-        target_os="linux" 
-        use_glib=true 
-        libcxx_abi_unstable=false 
-        rtc_use_h264=false 
-        rtc_enable_libevent=false 
-        libcxx_is_shared=true 
-        rtc_use_dummy_audio_file_devices=true 
-        rtc_include_pulse_audio=false ffmpeg_branding="Chrome"' &&\
-gn gen out/Default --args="${gn_args}" &&\
-ninja -C out/Default buildtools/third_party/libc++:libc++ -v &&\
-sudo cp out/Default/libc++.so /usr/lib/ &&\
-ninja -C out/Default -v &&\
+        use_custom_libcxx=false
+        rtc_enable_protobuf=false
+        rtc_include_pulse_audio=false'
+gn gen out/Default --args="${gn_args}"
+ninja -C out/Default
+# Build additional module for test audio devices
+ninja -C out/Default webrtc_extras
+# We rename 'src' to 'webrtc' so that our files can
+# prefix includes with 'webrtc' so we avoid filename collisions
+# and so we can tell apart files from the library easily
+#
+# Note if you want to run `gclient sync` again in the future
+# you will need to change the name back to src
 cd .. && mv src webrtc
 ```
 
-### 5. Use WebRTC Clang for build
-Use the Clang from WebRTC.
-```
-git clone https://github.com/aws/amazon-chime-sdk-cpp.git &&
-cd ~/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp &&\
-vim cmake/toolchains/LinuxClang.cmake
-```
+### 4. Install CMake and Ninja
 
-Change `LinuxClang.cmake` to following
-```
-set(CMAKE_SYSTEM_NAME Linux)
+Install CMake that is used for building Amazon Chime SDK for C++ Signaling Client. This is easiest using your package manager, but you can also [download a release](https://cmake.org/download/) or [build from source](https://gitlab.kitware.com/cmake/cmake). Additionally, we will use [Ninja](https://ninja-build.org/) to build a bit faster, though you can just omit `-GNinja` in later commands to use Makefiles.
 
-set(CMAKE_C_COMPILER  /home/ubuntu/webrtc-build/webrtc/third_party/llvm-build/Release+Asserts/bin/clang)
-set(CMAKE_CXX_COMPILER /home/ubuntu/webrtc-build/webrtc/third_party/llvm-build/Release+Asserts/bin/clang++)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
-
-include_directories(SYSTEM /home/ubuntu/webrtc-build/webrtc/buildtools/third_party/libc++/trunk/include /home/ubuntu/webrtc-build/webrtc/third_party/llvm-build/Release+Asserts/lib/clang/14.0.0/include/ /home/ubuntu/webrtc-build/webrtc/buildtools/third_party/libc++/ /home/ubuntu/webrtc-build/webrtc/buildtools/third_party/libc++abi/trunk/include)
+```shell
+sudo apt install cmake -y
+sudo apt install ninja-build -y
 ```
 
+### 5. Pull and build C++ SDK Signaling Client
 
-### 6. Build C++ SDK signaling client
+To avoid downstream linking issues, and avoid relying on the often broken `rtc_build_ssl=false` flag, we simply use the `BoringSSL` implemenation bundled with the current version of libwebrtc. Note that the library currently has a small incompatability with `libwebsockets` that can be avoided with `LWS_HAVE_OPENSSL_STACK=OFF`.
 
-```
-export VANILLA_WEBRTC_SRC=$HOME/webrtc-build &&\
-export BORING_SSL_LIBS=$VANILLA_WEBRTC_SRC/webrtc/build/linux/debian_sid_amd64-sysroot/usr/lib/x86_64-linux-gnu &&\
-export BORING_SSL_INCLUDE_DIR=$VANILLA_WEBRTC_SRC/webrtc/third_party/boringssl/src/include &&\
-export TOOLCHAIN_FILE=$HOME/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/cmake/toolchains/LinuxClang.cmake &&\
-cd ~/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp &&\
-rm -rf build && cmake -S . -B build -DLWS_OPENSSL_LIBRARIES="${BORING_SSL_LIBS}/libssl.a;${BORING_SSL_LIBS}/libcrypto.a" -DLWS_OPENSSL_INCLUDE_DIRS=$BORING_SSL_INCLUDE_DIR -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_FILE}" &&\ 
+```shell
+cd $CHIME_SDK_DEMO_DIRECTORY
+git clone https://github.com/aws/amazon-chime-sdk-cpp.git
+cd amazon-chime-sdk-cpp/chime-sdk-signaling-cpp
+
+# Note this is statically linked into the main libwebrtc library!
+export BORING_SSL_LIB=$CHIME_SDK_DEMO_DIRECTORY/webrtc-build/webrtc/out/Default/obj/libwebrtc.a
+export BORING_SSL_INCLUDE_DIR=$CHIME_SDK_DEMO_DIRECTORY/webrtc-build/webrtc/third_party/boringssl/src/include
+cmake -S . -B build \
+    -DLWS_OPENSSL_LIBRARIES=$BORING_SSL_LIB \
+    -DLWS_OPENSSL_INCLUDE_DIRS=$BORING_SSL_INCLUDE_DIR \
+    -DLWS_WITH_BORINGSSL=ON \
+    -DLWS_HAVE_OPENSSL_STACK=OFF \
+    -GNinja
 cmake --build build
 ```
 
-### 7. Build C++ SDK signaling client Demo
+If during the generation phase you see something like the following:
+
+```txt
+-- Looking for HMAC_CTX_new
+-- Looking for HMAC_CTX_new - not found
 ```
-cd $HOME/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli &&\
-rm -rf build && cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_FILE}" &&\
+
+you likely have not configured your SSL libraries correctly.
+
+### 6. Build C++ SDK Signaling Client Demo
+
+This is relatively straightforward assuming the above steps have been completed correctly.
+
+```shell
+cd $CHIME_SDK_DEMO_DIRECTORY/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli
+cmake -S . -B build -GNinja
 cmake --build build
 ```
 
 ## Running the Demo Application
+
+The binary `my_cli` requires values collected from [CreateMeeting](https://docs.aws.amazon.com/chime-sdk/latest/APIReference/API_meeting-chime_CreateMeeting.html) and [CreateAttendee](https://docs.aws.amazon.com/chime-sdk/latest/APIReference/API_meeting-chime_CreateAttendee.html). 
+
+It is recommended to run a [serverless demo](https://github.com/aws/amazon-chime-sdk-js/blob/main/demos/serverless/README.md), since that allows web clients to join at the same time. `run_with_serverless_demo.sh` will query a deployed serverless demo for credentials and use those instantiate the CLI.
+
+```shell
+cd $CHIME_SDK_DEMO_DIRECTORY/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli
+
+# Will be outputted by deployment, e.g. https://XXXXXX.execute-api.us-east-1.amazonaws.com/Prod/
+export SERVERLESS_DEMO_URL= # ... 
+./run_with_serverless_demo.sh --meeting test-meeting --attendee cli-attendee --url $SERVERLESS_DEMO_URL
 ```
-cd ~/amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/build
-# Arguments are retrieved from Chime AWS SDK: https://docs.aws.amazon.com/chime/latest/APIReference/API_CreateMeetingWithAttendees.html
-# or you can use curl -XPOST "https://xxxxx.xxxxx.xxx.com/Prod/join?title={MEETING_NAME}&name={ATTENDEE_NAME}&region={MEETING_REGION}" from [Serverless Demo](https://github.com/aws/amazon-chime-sdk-js/tree/main/demos/serverless)
-# ex: curl -XPOST "https://xxxxx.xxxxx.xxx.com/Prod/join?title=<meeting-title>&name=<attendee-name>&region=us-east-1"
-./my_cli --attendee_id=<ATTENDEE_ID> --audio_host_url=<AUDIO_HOST_URL> --external_meeting_id=<EXTERNAL_MEETINIG_ID> --external_user_id=<EXTERNAL_USER_ID> --join_token=<JOIN_TOKEN> --log_level=<LOG_LEVEL> --meeting_id=<MEETING_ID> --signaling_url=<SIGNALING_URL> --send_audio_file_name=<SEND_AUDIO_FILE>
-# Ex: ./my_cli --attendee_id 1234567-1234-1234-1234-123456789012 --audio_host_url aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.k.m3.ue1.app.chime.aws:3478 --external_meeting_id example --external_user_id af9de7ed#eee --join_token xxxxx --log_level error --meeting_id 1234567-1234-1234-1234-123456789012 --signaling_url wss://signal.m3.ue1.app.chime.aws/control/1234567-1234-1234-1234-123456789012 --send_audio_file_name "./hello.pcm"
-```
 
-send_audio_file_name requires a stereo, 16 bit, 48kHz, raw pcm file. The following steps can be used to get a public domain pcm file on mac:
+There is a keypress monitor that supports the following commands. You must press enter for the command to be invoked:
 
-1. Download mp4 from here: https://musopen.org/music/2567-symphony-no-5-in-c-minor-op-67/?fbclid=IwAR3ajy-GQyg0_Y18KmNJpmh2yyMQG39yCAiVTECjtpmTs5bFj7ZcXkR3984
-2. brew install ffmpeg
-3. ffmpeg -i ~/Downloads/sample_mp3_file.mp3 -f s16le -sample_rate 48000 -acodec pcm_s16le Beethoven_Symphony_no5_48k_16bit.pcm
-    1. You can test the audio with: ffplay -autoexit -f s32le -sample_rate 48000 Beethoven_Symphony_no5_48k_16bit.pcm
-4. Move this to `amazon-chime-sdk-cpp/chime-sdk-signaling-cpp/demo/cli/media_in` on your linux machine.
-
+* `q`: Quit
+* `c`: Enable test video capture
+* `d`: Send a test data message

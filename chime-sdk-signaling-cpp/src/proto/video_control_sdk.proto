@@ -1,0 +1,517 @@
+// Copyright 2019-2024 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto2";
+package signal_sdk;
+
+message SdkSignalFrame {
+    enum Type {
+        reserved 6, 11, 12, 14, 15;
+        JOIN = 1;
+        JOIN_ACK = 2;
+        SUBSCRIBE = 3;
+        SUBSCRIBE_ACK = 4;
+        INDEX = 5;
+        PAUSE = 7;
+        RESUME = 8;
+        LEAVE = 9;
+        LEAVE_ACK = 10;
+        BITRATES = 13;
+        AUDIO_CONTROL = 16;
+        AUDIO_METADATA = 17;
+        AUDIO_STREAM_ID_INFO = 18;
+        PING_PONG = 19;
+        AUDIO_STATUS = 20;
+        CLIENT_METRIC = 21;
+        DATA_MESSAGE = 22;
+        AUDIO_TRANSCRIPT = 23;
+        REMOTE_VIDEO_UPDATE = 24;
+        PRIMARY_MEETING_JOIN = 25;
+        PRIMARY_MEETING_JOIN_ACK = 26;
+        PRIMARY_MEETING_LEAVE = 27;
+        NOTIFICATION = 34;
+    }
+    reserved 9, 13, 15, 16;
+    required uint64 timestamp_ms = 1;
+    required Type type = 2;
+    optional SdkErrorFrame error = 3;
+    optional SdkJoinFrame join = 4;
+    optional SdkJoinAckFrame joinack = 5;
+    optional SdkSubscribeFrame sub = 6;
+    optional SdkSubscribeAckFrame suback = 7;
+    optional SdkIndexFrame index = 8;
+    optional SdkPauseResumeFrame pause = 10;
+    optional SdkLeaveFrame leave = 11;
+    optional SdkLeaveAckFrame leave_ack = 12;
+    optional SdkBitrateFrame bitrates = 14;
+    optional SdkAudioControlFrame audio_control = 17;
+    optional SdkAudioMetadataFrame audio_metadata = 18;
+    optional SdkAudioStreamIdInfoFrame audio_stream_id_info = 19;
+    optional SdkPingPongFrame ping_pong = 20;
+    optional SdkAudioStatusFrame audio_status = 21;
+    optional SdkClientMetricFrame client_metric = 22;
+    optional SdkDataMessageFrame data_message = 23;
+    optional SdkAudioTranscriptFrame audio_transcript = 24;
+    optional SdkRemoteVideoUpdateFrame remote_video_update = 25;
+    optional SdkPrimaryMeetingJoinFrame primary_meeting_join = 26;
+    optional SdkPrimaryMeetingJoinAckFrame primary_meeting_join_ack = 27;
+    optional SdkPrimaryMeetingLeaveFrame primary_meeting_leave = 28;
+    optional SdkNotificationFrame notification = 35;
+}
+
+message SdkErrorFrame {
+    optional uint32 status = 1;
+    optional string description = 2;
+}
+
+enum SdkJoinFlags {
+    reserved 1, 4, 8, 16;
+    HAS_STREAM_UPDATE = 2;
+    EXCLUDE_SELF_CONTENT_IN_INDEX = 32;
+}
+
+message SdkClientDetails {
+    optional string app_name = 1;
+    optional string app_version = 2;
+    optional string device_model = 3;
+    optional string device_make = 4;
+    optional string platform_name = 5;
+    optional string platform_version = 6;
+    optional string client_source = 7;
+    optional string chime_sdk_version = 8;
+    optional string client_utc_offset = 9;
+}
+
+enum SdkServerSideNetworkAdaption {
+    DEFAULT = 1;
+    NONE = 2;
+    BANDWIDTH_PROBING = 3;
+    BANDWIDTH_PROBING_AND_VIDEO_QUALITY_ADAPTION = 4;
+};
+enum SdkAudioReceiveType {
+    MIXED_STREAM = 0;
+    UNMIXED_STREAM = 1;
+}
+
+message SdkJoinFrame {
+    reserved 5;
+    optional uint32 protocol_version = 1 [default=2];
+    optional uint32 max_num_of_videos = 2 [default=8];
+    optional uint32 flags = 3;
+    optional SdkClientDetails client_details = 4;
+    optional uint64 audio_session_id = 6;
+    optional bool wants_compressed_sdp = 7;
+    optional SdkServerSideNetworkAdaption server_side_network_adaption = 10;
+    repeated SdkServerSideNetworkAdaption supported_server_side_network_adaptions = 11;
+    optional bool wants_all_temporal_layers_in_index = 12;
+    optional bool disable_periodic_keyframe_request_on_content_sender = 13;
+    optional SdkAudioReceiveType audio_receive_type = 14 [default=MIXED_STREAM];
+    optional bool use_abs_capture_time_header_extension = 15;
+    optional bool use_layers_allocation_header_extension = 16;
+}
+
+message SdkJoinAckFrame {
+    optional SdkTurnCredentials turn_credentials = 1;
+    optional uint32 video_subscription_limit = 2;
+    optional bool wants_compressed_sdp = 3;
+    optional SdkServerSideNetworkAdaption default_server_side_network_adaption = 4;
+    optional uint32 audio_subscription_limit = 5;
+}
+
+message SdkLeaveFrame {}
+
+message SdkLeaveAckFrame {}
+
+enum SdkStreamServiceType {
+    RX = 1;
+    TX = 2;
+    DUPLEX = 3;
+}
+
+enum SdkStreamMediaType {
+    AUDIO = 1;
+    VIDEO = 2;
+}
+
+message SdkAudioSubscriptionConfiguration {
+    required string mid = 1;
+    required uint32 audio_stream_id = 2;
+}
+
+message SdkSubscribeFrame {
+    optional SdkStreamServiceType duplex = 1 [default=RX];
+    repeated SdkStreamDescriptor send_streams = 2;
+    repeated uint32 receive_stream_ids = 3;
+    optional string sdp_offer = 4;
+    optional string audio_host = 5;
+    optional bool audio_checkin = 6;
+    optional bool audio_muted = 7;
+    optional bytes compressed_sdp_offer = 8;
+    repeated SdkVideoSubscriptionConfiguration video_subscription_configurations = 9;
+    repeated SdkAudioSubscriptionConfiguration audio_subscription_configurations = 10;
+}
+
+message SdkSubscribeAckFrame {
+    optional SdkStreamServiceType duplex = 1;
+    repeated SdkStreamAllocation allocations = 2;
+    optional string sdp_answer = 3;
+    repeated SdkTrackMapping tracks = 4;
+    optional bytes compressed_sdp_answer = 5;
+}
+
+message SdkIndexFrame {
+    optional bool at_capacity = 1;
+    repeated SdkStreamDescriptor sources = 2;
+    repeated uint32 paused_at_source_ids = 3;
+    optional uint32 num_participants = 4;
+    repeated SdkVideoCodecCapability supported_receive_codec_intersection = 5 [packed = true];
+}
+
+message SdkPauseResumeFrame {
+    repeated uint32 stream_ids = 1;
+    repeated uint32 group_ids = 2;
+}
+
+message SdkBitrateFrame {
+    repeated SdkBitrate bitrates = 1;
+    optional uint32 server_available_outgoing_bitrate_kbps = 2;
+}
+
+message SdkStreamDescriptor {
+    optional uint32 stream_id = 1;
+    optional uint32 framerate = 2;
+    optional uint32 max_bitrate_kbps = 3;
+    optional string track_label = 4;
+    optional uint32 group_id = 6;
+    optional uint32 avg_bitrate_bps = 7;
+    optional string attendee_id = 8;
+    optional SdkStreamMediaType media_type = 9;
+    optional string external_user_id = 10;
+    optional uint32 width = 11;
+    optional uint32 height = 12;
+    optional string display_label = 16;
+}
+
+message SdkStreamAllocation {
+    optional string track_label = 1;
+    optional uint32 stream_id = 2;
+    optional uint32 group_id = 3;
+}
+
+message SdkTrackMapping {
+    optional uint32 stream_id = 1;
+    optional uint32 ssrc = 2;
+    optional string track_label = 3;
+}
+
+message SdkBitrate {
+    optional uint32 source_stream_id = 1;
+    optional uint32 avg_bitrate_bps = 2;
+}
+
+message SdkAudioControlFrame {
+    optional bool muted = 1;
+}
+
+message SdkAudioMetadataFrame {
+    repeated SdkAudioAttendeeState attendee_states = 1;
+}
+
+message SdkAudioAttendeeState {
+    optional uint32 audio_stream_id = 1;
+    optional uint32 volume = 2;
+    optional bool muted = 3;
+    optional uint32 signal_strength = 4;
+}
+
+message SdkAudioStreamIdInfoFrame {
+    repeated SdkAudioStreamIdInfo streams = 1;
+}
+
+message SdkAudioStreamIdInfo {
+    optional uint32 audio_stream_id = 1;
+    optional string attendee_id = 2;
+    optional bool muted = 3;
+    optional string external_user_id = 4;
+    optional bool dropped = 5;
+}
+
+enum SdkPingPongType {
+    PING = 1;
+    PONG = 2;
+}
+
+message SdkPingPongFrame {
+    required SdkPingPongType type = 1;
+    required uint32 ping_id = 2;
+}
+
+message SdkAudioStatusFrame {
+    optional uint32 audio_status = 1;
+}
+
+message SdkMetric {
+    enum Type {
+        reserved 53, 57, 58, 59;
+        VIDEO_ACTUAL_ENCODER_BITRATE = 1;
+        VIDEO_AVAILABLE_SEND_BANDWIDTH = 2;
+        VIDEO_RETRANSMIT_BITRATE = 3;
+        VIDEO_AVAILABLE_RECEIVE_BANDWIDTH = 4;
+        VIDEO_TARGET_ENCODER_BITRATE = 5;
+        VIDEO_BUCKET_DELAY_MS = 6;
+        STUN_RTT_MS = 7;
+        SOCKET_DISCARDED_PPS = 8;
+        RTC_MIC_JITTER_MS = 9;
+        RTC_MIC_PPS = 10;
+        RTC_MIC_FRACTION_PACKET_LOST_PERCENT = 11;
+        RTC_MIC_BITRATE = 12;
+        RTC_MIC_RTT_MS = 13;
+        RTC_SPK_PPS = 14;
+        RTC_SPK_FRACTION_PACKET_LOST_PERCENT = 15;
+        RTC_SPK_JITTER_MS = 16;
+        RTC_SPK_FRACTION_DECODER_LOSS_PERCENT = 17;
+        RTC_SPK_BITRATE = 18;
+        RTC_SPK_CURRENT_DELAY_MS = 19;
+        RTC_SPK_JITTER_BUFFER_MS = 20;
+        VIDEO_SENT_RTT_MS = 21;
+        VIDEO_ENCODE_USAGE_PERCENT = 22;
+        VIDEO_NACKS_RECEIVED = 23;
+        VIDEO_PLIS_RECEIVED = 24;
+        VIDEO_ENCODE_MS = 25;
+        VIDEO_INPUT_FPS = 26;
+        VIDEO_ENCODE_FPS = 27;
+        VIDEO_SENT_FPS = 28;
+        VIDEO_FIRS_RECEIVED = 29;
+        VIDEO_SENT_PPS = 30;
+        VIDEO_SENT_FRACTION_PACKET_LOST_PERCENT = 31;
+        VIDEO_SENT_BITRATE = 32;
+        VIDEO_DROPPED_FPS = 33;
+        VIDEO_TARGET_DELAY_MS = 34;
+        VIDEO_DECODE_MS = 35;
+        VIDEO_OUTPUT_FPS = 36;
+        VIDEO_RECEIVED_PPS = 37;
+        VIDEO_RECEIVED_FRACTION_PACKET_LOST_PERCENT = 38;
+        VIDEO_RENDER_DELAY_MS = 39;
+        VIDEO_RECEIVED_FPS = 40;
+        VIDEO_DECODE_FPS = 41;
+        VIDEO_NACKS_SENT = 42;
+        VIDEO_FIRS_SENT = 43;
+        VIDEO_RECEIVED_BITRATE = 44;
+        VIDEO_CURRENT_DELAY_MS = 45;
+        VIDEO_JITTER_BUFFER_MS = 46;
+        VIDEO_DISCARDED_PPS = 47;
+        VIDEO_PLIS_SENT = 48;
+        VIDEO_RECEIVED_JITTER_MS = 49;
+        VIDEO_ENCODE_HEIGHT = 64;
+        VIDEO_SENT_QP_SUM = 66;
+        VIDEO_DECODE_HEIGHT = 69;
+        VIDEO_RECEIVED_QP_SUM = 72;
+        VIDEO_ENCODE_WIDTH = 86;
+        VIDEO_DECODE_WIDTH = 87;
+        VIDEO_ENCODER_IS_HARDWARE = 88;
+        VIDEO_DECODER_IS_HARDWARE = 89;
+        VIDEO_FREEZE_COUNT = 90;
+        VIDEO_FREEZE_DURATION = 91;
+        VIDEO_PAUSE_COUNT = 92;
+        VIDEO_PAUSE_DURATION = 93;
+        VIDEO_QUALITY_REASON = 94;
+        VIDEO_PROCESSING_TIME = 95;
+        RTC_SPK_AUDIO_LEVEL = 96;
+        RTC_MIC_AUDIO_LEVEL = 97;
+        RTC_SPK_TOTAL_LOST = 98;
+        RTC_SPK_TOTAL_EXPECTED = 99;
+        RTC_SPK_TOTAL_RECOVERED_RED = 100;
+        RTC_SPK_TOTAL_RECOVERED_FEC = 101;
+        VIDEO_QUALITY_LIMITATION_DURATION_CPU = 102;
+        VIDEO_CODEC_DEGRADATION_HIGH_ENCODE_CPU = 103;
+        VIDEO_CODEC_DEGRADATION_ENCODE_FAILURE = 104;
+    }
+    optional Type type = 1;
+    optional double value = 2;
+}
+
+message SdkStreamMetricFrame {
+    optional uint32 stream_id = 3;
+    optional uint32 group_id = 4;
+    repeated SdkMetric metrics = 5;
+    repeated SdkStreamDimension dimensions = 6;
+    optional SdkStreamMediaType media_type = 7;
+}
+
+message SdkClientMetricFrame {
+    repeated SdkMetric global_metrics = 1;
+    repeated SdkStreamMetricFrame stream_metric_frames = 2;
+}
+
+message SdkStreamDimension {
+    enum Type {
+        VIDEO_ENCODER_NAME = 1;
+        VIDEO_DECODER_NAME = 2;
+    }
+    optional Type type = 1;
+    optional SdkDimensionValue value = 2;
+}
+
+message SdkDimensionValue {
+    optional string string_value = 1;
+    optional bool bool_value = 2;
+    optional uint64 uint_value = 3;
+}
+
+message SdkDataMessageFrame {
+    repeated SdkDataMessagePayload messages = 1;
+}
+
+message SdkDataMessagePayload {
+    optional string topic = 1;
+    optional bytes data = 2;
+    optional uint32 lifetime_ms = 3;
+    optional string sender_attendee_id = 4;
+    optional int64 ingest_time_ns = 5;
+    optional string sender_external_user_id = 6;
+}
+
+message SdkTurnCredentials {
+    optional string username = 1;
+    optional string password = 2;
+    optional uint32 ttl = 3;
+    repeated string uris = 4;
+}
+
+message SdkAudioTranscriptItem {
+    optional string content = 1;
+    optional int64 end_time = 2;
+    optional string speaker_attendee_id = 3;
+    optional string speaker_external_user_id = 4;
+    optional int64 start_time = 5;
+    enum Type {
+        PRONUNCIATION = 1;
+        PUNCTUATION = 2;
+    }
+    optional Type type = 6;
+    optional bool vocabulary_filter_match = 7;
+    optional double confidence = 8;
+    optional bool stable = 9;
+}
+
+message SdkAudioTranscriptEntity {
+    optional string category = 1;
+    optional double confidence = 2;
+    optional string content = 3;
+    optional int64 end_time = 4;
+    optional int64 start_time = 5;
+    optional string type = 6;
+}
+
+message SdkAudioTranscriptAlternative {
+    repeated SdkAudioTranscriptItem items = 1;
+    optional string transcript = 2;
+    repeated SdkAudioTranscriptEntity entities = 3;
+}
+
+message SdkAudioTranscriptLanguageWithScore {
+    optional string language_code = 1;
+    optional double score = 2;
+}
+
+message SdkAudioTranscriptResult {
+    repeated SdkAudioTranscriptAlternative alternatives = 1;
+    optional string channel_id = 2;
+    optional int64 end_time = 3;
+    optional bool is_partial = 4;
+    optional string result_id = 5;
+    optional int64 start_time = 6;
+    optional string language_code = 7;
+    repeated SdkAudioTranscriptLanguageWithScore language_identification = 8;
+}
+
+message SdkAudioTranscript {
+    repeated SdkAudioTranscriptResult results = 1;
+}
+
+message SdkMeetingTranscriptionStatus {
+    enum Type {
+        STARTED = 1;
+        INTERRUPTED = 2;
+        RESUMED = 3;
+        STOPPED = 4;
+        FAILED = 5;
+    }
+    optional Type type = 1;
+    optional int64 event_time = 2;
+    optional string transcription_region = 3;
+    optional string transcription_configuration = 4;
+    optional string message = 5;
+}
+
+message SdkAudioTranscriptEvent {
+    oneof Event {
+        SdkMeetingTranscriptionStatus status = 1;
+        SdkAudioTranscript transcript = 2;
+    }
+}
+
+message SdkAudioTranscriptFrame {
+    repeated SdkAudioTranscriptEvent events = 1;
+}
+
+message SdkRemoteVideoUpdateFrame {
+    repeated SdkVideoSubscriptionConfiguration added_or_updated_video_subscriptions = 1;
+    repeated string removed_video_subscription_mids = 2;
+}
+
+enum SdkVideoQualityAdaptationPreference {
+  BALANCED = 1;
+  MAINTAIN_FRAMERATE = 2;
+  MAINTAIN_RESOLUTION = 3;
+}
+
+message SdkVideoSubscriptionConfiguration {
+    required string mid = 1;
+    optional string attendee_id = 2;
+    optional uint32 stream_id = 3;
+    optional uint32 priority = 4;
+    optional uint32 target_bitrate_kbps = 5;
+    optional uint32 group_id = 6;
+    optional SdkVideoQualityAdaptationPreference quality_adaptation_preference = 7;
+}
+
+message SdkNotificationFrame {
+    enum NotificationLevel {
+        INFO = 1;
+        WARNING = 2;
+        ERROR = 3;
+    }
+    optional NotificationLevel level = 1 [default=ERROR];
+    optional string message = 2;
+}
+
+message SdkPrimaryMeetingJoinFrame {
+    optional SdkMeetingSessionCredentials credentials = 1;
+}
+
+message SdkPrimaryMeetingJoinAckFrame {
+}
+
+message SdkPrimaryMeetingLeaveFrame {
+}
+
+message SdkMeetingSessionCredentials {
+    optional string attendee_id = 1;
+    optional string external_user_id = 2;
+    optional string join_token = 3;
+}
+
+enum SdkVideoCodecCapability {
+    VP8 = 1;
+    H264_BASELINE_PROFILE = 2;
+    H264_CONSTRAINED_BASELINE_PROFILE = 3;
+    H264_MAIN_PROFILE = 4;
+    H264_HIGH_PROFILE = 5;
+    H264_CONSTRAINED_HIGH_PROFILE = 6;
+    H265 = 7;
+    VP9_PROFILE_0 = 8;
+    VP9_PROFILE_1 = 9;
+    VP9_PROFILE_2 = 10;
+    AV1_MAIN_PROFILE = 11;
+};

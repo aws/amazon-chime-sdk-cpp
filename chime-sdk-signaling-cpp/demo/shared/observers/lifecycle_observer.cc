@@ -55,7 +55,7 @@ void LifecycleObserver::OnSignalingClientStarted(const SignalingClientStartInfo&
 
   const char kAudioLabel[] = "external_audio";
   auto audio_source = controller_->peer_connection_factory_->CreateAudioSource(cricket::AudioOptions());
-  auto audio_track = controller_->peer_connection_factory_->CreateAudioTrack(kAudioLabel, audio_source);
+  auto audio_track = controller_->peer_connection_factory_->CreateAudioTrack(kAudioLabel, audio_source.get());
 
   webrtc::RtpTransceiverInit transceiver_init;
   transceiver_init.direction = webrtc::RtpTransceiverDirection::kSendRecv;
@@ -64,7 +64,7 @@ void LifecycleObserver::OnSignalingClientStarted(const SignalingClientStartInfo&
     RTC_LOG(LS_ERROR) << "Failed to add audio track to PeerConnection; err:" << transceiver_or_error.error().message();
     return;
   }
-  transceiver_or_error.value()->sender()->SetTrack(audio_track);
+  transceiver_or_error.value()->sender()->SetTrack(audio_track.get());
 
   controller_->local_video_source_ = new rtc::RefCountedObject<FakeVideoSource>();
 

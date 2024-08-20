@@ -5,7 +5,8 @@
 
 #include "signaling_transport_observer.h"
 #include "utils/runnable.h"
-#include "proto/video_control.pb.h"
+#include "video_control_sdk.pb.h"
+
 
 namespace chime {
 
@@ -17,7 +18,7 @@ class SignalingTransport : public Runnable {
   virtual void Stop() = 0;
 
   // Send Signal Frame. Internally, it should convert to binary
-  virtual bool SendSignalFrame(signal_rtc::SignalFrame& frame) = 0;
+  virtual bool SendSignalFrame(signal_sdk::SdkSignalFrame& frame) = 0;
 };
 
 }  // namespace chime

@@ -19,9 +19,9 @@ class DefaultAudioFrameAdapter : public AudioFrameAdapter {
  public:
   explicit DefaultAudioFrameAdapter(DefaultSignalingClient* default_signaling_client);
 
-  void OnAudioStreamIdInfo(const signal_rtc::AudioStreamIdInfoFrame& audio_stream_id_info) override;
+  void OnAudioStreamIdInfo(const signal_sdk::SdkAudioStreamIdInfoFrame& audio_stream_id_info) override;
 
-  void OnAudioMetadata(const signal_rtc::AudioMetadataFrame& audio_metadata) override;
+  void OnAudioMetadata(const signal_sdk::SdkAudioMetadataFrame& audio_metadata) override;
 
   ~DefaultAudioFrameAdapter() override = default;
  private:

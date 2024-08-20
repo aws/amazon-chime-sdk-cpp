@@ -12,7 +12,7 @@ class MockSignalingTransport : public SignalingTransport {
  public:
   MOCK_METHOD(void, Start, (), (override));
   MOCK_METHOD(void, Stop, (), (override));
-  MOCK_METHOD(bool, SendSignalFrame, (signal_rtc::SignalFrame & frame), (override));
+  MOCK_METHOD(bool, SendSignalFrame, (signal_sdk::SdkSignalFrame & frame), (override));
   MOCK_METHOD(void, Poll, (), (override));
 };
 

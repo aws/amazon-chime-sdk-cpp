@@ -33,16 +33,16 @@ float NormalizeSignalStrength(uint32_t signal_strength) {
 
 DefaultAudioFrameAdapter::DefaultAudioFrameAdapter(DefaultSignalingClient* default_signaling_client) : default_signaling_client_(default_signaling_client) {}
 
-void DefaultAudioFrameAdapter::OnAudioStreamIdInfo(const signal_rtc::AudioStreamIdInfoFrame &audio_stream_id_info) {
+void DefaultAudioFrameAdapter::OnAudioStreamIdInfo(const signal_sdk::SdkAudioStreamIdInfoFrame &audio_stream_id_info) {
   // Iterate the streams, store the associated attendee data, send out events based on changes.
   // The order is guaranteed, and there's no reuse of the stream id in the same meeting.
-  for (const signal_rtc::AudioStreamIdInfo& stream : audio_stream_id_info.streams()) {
+  for (const signal_sdk::SdkAudioStreamIdInfo& stream : audio_stream_id_info.streams()) {
     // Skip when no stream id
     if (!stream.has_audio_stream_id()) {
       CHIME_LOG(LogLevel::kDebug, "No audio stream id in audio stream id info frame, will skip.");
       continue;
     }
-    bool has_attendee_id = stream.has_profile_id();
+    bool has_attendee_id = stream.has_attendee_id();
     bool has_external_user_id = stream.has_external_user_id();
     bool has_muted = stream.has_muted();
     bool has_dropped = stream.has_dropped();
@@ -52,15 +52,15 @@ void DefaultAudioFrameAdapter::OnAudioStreamIdInfo(const signal_rtc::AudioStream
     if (has_attendee_id) {
       // Default to empty string if external user id is absent
       std::string external_user_id = has_external_user_id ? stream.external_user_id() : "";
-      const auto stream_itr = attendee_id_to_stream_id_.find(stream.profile_id());
+      const auto stream_itr = attendee_id_to_stream_id_.find(stream.attendee_id());
       // Not seen before
       if (stream_itr == attendee_id_to_stream_id_.end()) {
         default_signaling_client_->NotifySignalingObserver([&] (SignalingClientObserver* observer) -> void {
-          observer->OnAttendeeJoined({ stream.profile_id(), external_user_id });
+          observer->OnAttendeeJoined({ stream.attendee_id(), external_user_id });
         });
       }
-      attendee_id_to_stream_id_[stream.profile_id()] = stream.audio_stream_id();
-      stream_id_to_attendee_id_[stream.audio_stream_id()] = stream.profile_id();
+      attendee_id_to_stream_id_[stream.attendee_id()] = stream.audio_stream_id();
+      stream_id_to_attendee_id_[stream.audio_stream_id()] = stream.attendee_id();
       // Audio metadata frame does not carry external user id, we need to store it for query later
       stream_id_to_external_user_id_[stream.audio_stream_id()] = external_user_id;
     }
@@ -138,10 +138,10 @@ void DefaultAudioFrameAdapter::OnAudioStreamIdInfo(const signal_rtc::AudioStream
   }
 }
 
-void DefaultAudioFrameAdapter::OnAudioMetadata(const signal_rtc::AudioMetadataFrame &audio_metadata) {
+void DefaultAudioFrameAdapter::OnAudioMetadata(const signal_sdk::SdkAudioMetadataFrame &audio_metadata) {
   std::vector<VolumeUpdate> volume_updates;
   std::vector<SignalStrengthUpdate> signal_strength_updates;
-  for (const signal_rtc::AudioProfileState& state : audio_metadata.profile_states()) {
+  for (const signal_sdk::SdkAudioAttendeeState& state : audio_metadata.attendee_states()) {
     // Skip when no stream id
     if (!state.has_audio_stream_id()) {
       CHIME_LOG(LogLevel::kVerbose, "No audio stream id in audio metadata frame, will skip.")

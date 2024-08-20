@@ -73,8 +73,6 @@ int main(int argc, char* argv[]) {
         cxxopts::value<std::string>()->default_value(""))("j,join_token",
                                                           "Join token [JoinInfo.Attendee.Attendee.JoinToken]",
                                                           cxxopts::value<std::string>()->default_value(""))(
-        "f,send_audio_file_name", "Audio file to play 16KHz, 16 bit PCM wave file only",
-        cxxopts::value<std::string>()->default_value(""))(
         "c,is_canary", "Running canary test",
         cxxopts::value<bool>()->default_value("false"))(
         "d,duration", "Duration for tests to run and finish in seconds",
@@ -96,7 +94,6 @@ int main(int argc, char* argv[]) {
   std::cout << "Attendee ID: " << result["attendee_id"].as<std::string>() << std::endl;
   std::cout << "Meeting Name: " << result["external_meeting_id"].as<std::string>() << std::endl;
   std::cout << "Meeting ID: " << result["meeting_id"].as<std::string>() << std::endl;
-  std::cout << "Audio Filename: " << result["send_audio_file_name"].as<std::string>() << std::endl;
   std::cout << "Current Log Level: " << result["log_level"].as<std::string>() << std::endl;
   std::cout << "Is Canary: " << result["is_canary"].as<bool>() << std::endl;
   
@@ -110,7 +107,6 @@ int main(int argc, char* argv[]) {
 
   MeetingControllerConfiguration configuration;
   configuration.meeting_configuration = meeting_configuration;
-  configuration.input_audio_filename = result["send_audio_file_name"].as<std::string>();
   configuration.log_level = result["log_level"].as<std::string>();
   auto session_description_observer = std::make_unique<SessionDescriptionObserver>();
   std::shared_ptr<MeetingController> controller

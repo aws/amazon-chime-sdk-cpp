@@ -1,6 +1,3 @@
-# This is an example CMake file that builds and run unit tests
-# Unit tests will be under build folder
-# You will need to cd build && ctest
 cmake_minimum_required(VERSION 3.17...3.20)
 
 project(AmazonChimeSdkCppUnitTest VERSION 0.1.0
