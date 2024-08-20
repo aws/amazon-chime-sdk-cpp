@@ -1,5 +1,5 @@
-name: Build Failure Report
-description: Report unexpected build failures with the project
+name:  Amazon Chime SDK for C++ Build Failure Report
+description: Report unexpected build failures with the  Amazon Chime SDK for C++
 body:
   - type: input
     id: subproject
