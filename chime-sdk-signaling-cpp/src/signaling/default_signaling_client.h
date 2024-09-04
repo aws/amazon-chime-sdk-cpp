@@ -19,8 +19,10 @@
 #include "default_signaling_dependencies.h"
 #include "session/turn_credentials.h"
 
+#include <condition_variable>
 #include <string>
 #include <map>
+#include <mutex>
 #include <unordered_map>
 
 namespace chime {
@@ -85,6 +87,7 @@ class DefaultSignalingClient : public SignalingClient, public SignalingTransport
   void HandleIndexFrame(const signal_sdk::SdkIndexFrame& index_frame);
   void HandleSubAckFrame(const signal_sdk::SdkSubscribeAckFrame& subscribe_ack_frame);
   void HandleDataMessageFrame(const signal_sdk::SdkDataMessageFrame& data_message_frame);
+  void HandleAudioStatus(const signal_sdk::SdkAudioStatusFrame& audio_status_frame);
 
   std::unique_ptr<SignalingTransport> signaling_transport_;
   std::unique_ptr<AudioFrameAdapter> audio_frame_adapter_;
@@ -100,8 +103,12 @@ class DefaultSignalingClient : public SignalingClient, public SignalingTransport
 
   bool is_muted_ = false;
   bool has_received_first_index_ = false;
-  std::chrono::system_clock::time_point turn_credentials_expire_time_;
   bool is_joined_ = false;
+  SignalingClientStatusType ended_type_ = SignalingClientStatusType::kOk;
+  std::mutex stop_mutex_;
+  std::condition_variable connecting_cv_;
+
+  std::chrono::system_clock::time_point turn_credentials_expire_time_;
   TurnCredentials turn_credentials_ {};
 };
 

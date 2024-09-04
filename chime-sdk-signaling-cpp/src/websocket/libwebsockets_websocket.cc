@@ -38,17 +38,16 @@ LibwebsocketsWebsocket::LibwebsocketsWebsocket(LibwebsocketsWebsocketConfigurati
       configuration.idle_timeout_sec;  // Seconds without proof of a valid connection before hanging up.
 
   // Configure libwebsocket protocols.
-  struct lws_protocols* protocols = new lws_protocols[2]{
-      {
-          configuration.protocol_name.c_str(), Callback,
-          0,     // per_session_data_size : Memory Libwebsockets will allocate for user data. NA in our case.
-          4096,  // rx_buffer_size        : Max recieve buffer size.
-          0,     // id                    : Unused by Libwebsockets.
-          this,  // user                  : Available as user parameter in Callback
-          4096   // tx_buffer_size        : Max send buffer size.
-      },
-      LWS_PROTOCOL_LIST_TERM  // Tells Libwebsockets this is the end of the list of protocols.
+  protocols_ = std::make_unique<std::vector<struct lws_protocols>>(2);
+  protocols_->at(0) = {
+    configuration.protocol_name.c_str(), Callback,
+    0,     // per_session_data_size : Memory Libwebsockets will allocate for user data. NA in our case.
+    4096,  // rx_buffer_size        : Max receive buffer size.
+    0,     // id                    : Unused by Libwebsockets.
+    this,  // user                  : Available as user parameter in Callback
+    4096   // tx_buffer_size        : Max send buffer size.
   };
+  protocols_->at(1) = LWS_PROTOCOL_LIST_TERM;
 
   // Setup logging
   int log_level = ConvertLogLevel(configuration.level);
@@ -58,7 +57,7 @@ LibwebsocketsWebsocket::LibwebsocketsWebsocket(LibwebsocketsWebsocketConfigurati
   memset(&info_, 0, sizeof info_);
   info_.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
   info_.port = CONTEXT_PORT_NO_LISTEN;  // This is a client, so no need to listen.
-  info_.protocols = protocols;
+  info_.protocols = &protocols_->front();
 }
 
 int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons reason, void* user, void* in,
@@ -78,6 +77,19 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
         return -1;
       }
       return 0;
+    }
+
+    // Joining already ended meeting will invoke LWS_CALLBACK_CLOSED_CLIENT_HTTP
+    case LWS_CALLBACK_CLOSED_CLIENT_HTTP: {
+      self->closed_ = true;
+      WebsocketStatus status;
+      // This will not call `lws_context_destroy` due to it crashing.
+      // It could be bug of libwebsocket when creating context leading to undefined behavior
+      // if it didn't get created fully before connecting.
+      status.description = "Connection already closed";
+      self->observer_->OnWebsocketClosed(status);
+      self->context_ = nullptr;
+      break;
     }
 
     case LWS_CALLBACK_CLIENT_RECEIVE: {
@@ -103,6 +115,7 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
 
     case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE: {
       self->close_code_ = *(static_cast<uint16_t*>(in));
+      self->closed_ = true;
       lwsl_info("Server initiated connection close. Close code: %hu\n", self->close_code_);
       lwsl_hexdump_debug(in, len);
       // By returning zero, Libwebsockets will echo the close back to the server, then close.
@@ -118,10 +131,25 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
       }
       lwsl_info("%s", description.c_str());
 
-      WebsocketStatus status;
-      status.description = description;
-      self->observer_->OnWebsocketClosed(status);
-      break;
+      // When connection is closed after websocket connection is established,
+      // it doesn't return LWS_CALLBACK_CLIENT_CONNECTION_ERROR, but instead LWS_CALLBACK_CLIENT_CLOSED
+      //
+      // Looks like context is malformed if it is destroyed by libwebosckets causing memory corruption
+      // If it is initiated by application, then safely close, otherwise error it out.
+      // TODO: Root cause this in libwebsockets and possibly fix
+      //
+      // Related: https://github.com/warmcat/libwebsockets/issues/2176
+      if (self->closed_) {
+        WebsocketStatus status;
+        lws_context_destroy(self->context_);
+        status.description = description;
+        self->observer_->OnWebsocketClosed(status);
+      } else {
+        // Context has been destroyed by libwebsockets treating as error for 
+        // any close that is not requested by us.
+        self->HandleError("Connection closed by client");
+      } 
+      self->context_ = nullptr;
     }
 
     case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER: {
@@ -141,6 +169,8 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
       break;
     }
     case LWS_CALLBACK_CLIENT_WRITEABLE: {
+      if (self->closed_) return -1;
+
       // TODO: Check if this can be also fragmented
       if (!self->message_queue_.empty()) {
         std::vector<uint8_t> data = self->message_queue_.front();
@@ -156,10 +186,11 @@ int LibwebsocketsWebsocket::Callback(struct lws* wsi, enum lws_callback_reasons 
         if (bytes_written == -1) {
           self->HandleError("Fatal write error. Closing.");
           lwsl_hexdump_debug(in, len);
-
           // Return non-zero to close the connection.
           return -1;
         }
+      } else {
+        return 0;
       }
       break;
     }
@@ -236,16 +267,19 @@ void LibwebsocketsWebsocket::Connect() {
   for (const auto& all_prod_cert : all_prod_certs) {
     lws_tls_client_vhost_extra_cert_mem(lws_vhost, all_prod_cert.cert, all_prod_cert.len);
   }
+  closed_ = false;
 }
 
 bool LibwebsocketsWebsocket::IsPollable() { return true; }
 
-void LibwebsocketsWebsocket::Poll() { lws_service(context_, 0); }
+void LibwebsocketsWebsocket::Poll() { if (context_) lws_service(context_, 0); }
 
 void LibwebsocketsWebsocket::Close() {
-  if (!context_) return;
+  if (!closed_) return;
+  closed_ = true;
+ 
+  lws_callback_on_writable(wsi_);
 
-  lws_context_destroy(context_);
   lwsl_user("Closed\n");
 }
 
@@ -270,6 +304,7 @@ int LibwebsocketsWebsocket::ConvertLogLevel(LogLevel level) {
     case LogLevel::kError:
       lws_level |= LLL_ERR;
     default:
+      lws_level |= LLL_INFO;
       break;
   }
   return lws_level;

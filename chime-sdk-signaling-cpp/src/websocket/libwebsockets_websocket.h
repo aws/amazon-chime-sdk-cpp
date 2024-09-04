@@ -63,11 +63,17 @@ class LibwebsocketsWebsocket : public Websocket {
   // Info to create the websocket context.
   struct lws_context_creation_info info_ = {};
 
+  // Protocols to use with Libwebsockets (passed by pointer)
+  std::unique_ptr<std::vector<struct lws_protocols>> protocols_;
+
   // Websocket context used to create the websocket instance.
   struct lws_context* context_ = nullptr;
 
   // Represents the websocket instance.
   struct lws* wsi_ = nullptr;
+
+  // Invoke close event by 
+  bool closed_ = false;
 
   // Needed for Libwebsockets to retry failed connection attempts.
   // lws_sorted_usec_list_t is used by Libwebsockets to stagger connection attempts.

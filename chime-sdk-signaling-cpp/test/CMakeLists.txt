@@ -7,7 +7,7 @@ project(AmazonChimeSdkCppUnitTest VERSION 0.1.0
 ## GoogleTest requires at least C++ 11
 set(CMAKE_CXX_STANDARD 17)
 
-set(UNIT_TEST_NAME unit_test)
+set(UNIT_TEST_NAME amazon-chime-signaling-sdk-cpp_sdk-unit-test)
 set(UNIT_TEST_NAME ${UNIT_TEST_NAME} PARENT_SCOPE)
 set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 

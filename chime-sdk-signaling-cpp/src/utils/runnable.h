@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <thread>
+#include <cassert>
 
 namespace chime {
 // Runnable is an abstraction that allows an implementation to inform the owning object
@@ -32,6 +33,9 @@ class Runnable {
   }
 
   virtual void StopRun() {
+    // Asserting here attempts to fail fast instead of blocking forever on the join call
+    assert(run_thread_.get_id() != std::this_thread::get_id());
+
     bool expected = true;
     if (running_.compare_exchange_strong(expected, false)) {
       if (run_thread_.joinable()) run_thread_.join();

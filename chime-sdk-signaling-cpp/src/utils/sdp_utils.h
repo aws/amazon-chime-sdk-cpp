@@ -48,7 +48,7 @@ class SDPUtils {
     return res;
   }
 
-  // TODO @hokyungh: might be worth if we don't do parsing by ourselves.
+  // TODO: might be worth if we don't do parsing by ourselves.
   static std::vector<MediaSection> ParseSDP(const std::string& sdp) {
     std::vector<std::string> sdp_vec = Split(sdp, "\r\n");
     std::vector<MediaSection> media_sections;

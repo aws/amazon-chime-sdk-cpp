@@ -11,7 +11,7 @@
 
 namespace chime {
 
-// TODO (https://issues.amazon.com/issues/Chime-41413): Fix to not use unique pointers
+// TODO: Fix to not use unique pointers
 // Contains information necessary to start a meeting.
 struct MeetingSessionConfiguration {
   std::string meeting_id;

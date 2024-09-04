@@ -30,6 +30,14 @@ class DefaultSignalingClientTest : public testing::Test {
     mock_signaling_transport_ = std::make_unique<MockSignalingTransport>();
     transport_ = mock_signaling_transport_.get();
   }
+
+  signal_sdk::SdkSignalFrame CreateAudioStatusFrame(uint32_t audio_status) {
+    signal_sdk::SdkSignalFrame frame;
+    frame.set_type(signal_sdk::SdkSignalFrame::AUDIO_STATUS);
+    auto audio_status_frame = frame.mutable_audio_status();
+    audio_status_frame->set_audio_status(audio_status);
+    return frame;
+  };
 };
 
 TEST_F(DefaultSignalingClientTest, ShouldReturnNonNull) {
@@ -187,5 +195,57 @@ TEST_F(DefaultSignalingClientTest, ShouldCallSendDataMessageWhenSendDataMessage)
   client.SendDataMessage(data_message_to_send);
 }
 
-
-
+TEST_F(DefaultSignalingClientTest, ShouldCallSendLeaveFrameWhenSignalingFrameHasError) {
+  SignalingClientConfiguration configuration;
+  auto* mock_signaling_transport_ref = mock_signaling_transport_.get();
+  DefaultSignalingDependencies dependencies {
+      std::make_unique<MockSignalingTransportFactory>(std::move(mock_signaling_transport_))
+  };
+  DefaultSignalingClient client {
+      configuration,
+      std::move(dependencies)
+  };
+  // Join + Send Leave
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
+  signal_sdk::SdkSignalFrame frame;
+  auto error_frame = frame.mutable_error();
+  error_frame->set_status(500);
+  client.OnSignalingConnected();
+  client.OnSignalFrameReceived(frame);
+}
+ 
+ 
+TEST_F(DefaultSignalingClientTest, ShouldCallSendLeaveFrameWhenAudioStatusIs410) {
+  SignalingClientConfiguration configuration;
+  auto* mock_signaling_transport_ref = mock_signaling_transport_.get();
+  DefaultSignalingDependencies dependencies {
+      std::make_unique<MockSignalingTransportFactory>(std::move(mock_signaling_transport_))
+  };
+  DefaultSignalingClient client {
+      configuration,
+      std::move(dependencies)
+  };
+  // Join + Send Leave
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
+  auto frame = CreateAudioStatusFrame(410);
+  client.OnSignalingConnected();
+  client.OnSignalFrameReceived(frame);
+}
+ 
+TEST_F(DefaultSignalingClientTest, ShouldCallSendLeaveFrameWhenAudioStatusIs301) {
+  SignalingClientConfiguration configuration;
+  auto* mock_signaling_transport_ref = mock_signaling_transport_.get();
+  DefaultSignalingDependencies dependencies {
+      std::make_unique<MockSignalingTransportFactory>(std::move(mock_signaling_transport_))
+  };
+  DefaultSignalingClient client {
+      configuration,
+      std::move(dependencies)
+  };
+ 
+  // Join + Send Leave
+  EXPECT_CALL(*mock_signaling_transport_ref, SendSignalFrame).Times(2);
+  auto frame = CreateAudioStatusFrame(301);
+  client.OnSignalingConnected();
+  client.OnSignalFrameReceived(frame);
+}

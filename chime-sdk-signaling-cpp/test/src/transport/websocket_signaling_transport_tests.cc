@@ -163,7 +163,7 @@ TEST_F(WebsocketSignalingTransportTest, ShouldCallOnSignalFrameReceivedWhenOnWeb
 
   frame.SerializeToString(&buf);
 
-  // TODO @hokyungh: need to implement comparator for frame
+  // TODO: need to implement comparator for frame
   EXPECT_CALL(mock_observer, OnSignalFrameReceived(testing::_)).Times(1);
 
   std::vector<uint8_t> input(buf.size() + 1);

@@ -17,6 +17,7 @@ struct RemoteVideoSourceInfo {
   /* @unstable */
   uint32_t max_bitrate_kbps{};
   uint32_t stream_id{};
+  uint32_t group_id{};
 };
 
 } // namespace chime

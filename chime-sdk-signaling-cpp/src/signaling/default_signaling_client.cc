@@ -14,15 +14,17 @@
 #include "utils/signal_frame_debug_utils.h"
 #include "version.h"
 
+#include <chrono>
 #include <utility>
 
 namespace chime {
 
 // Anonymous namespace. This is only accessible within this file.
-// All the helper function is defined here to avoid any future name collison
 namespace {
 const std::regex kTopicRegex{"^[a-zA-Z0-9_-]{1,36}$"};
 constexpr int kMaxSize = 2048;
+constexpr int kConnectingMaxWaitMs = 2000;
+
 bool IsLocal(MediaDirection direction) {
   return direction == MediaDirection::kInactive || direction == MediaDirection::kSendOnly ||
          direction == MediaDirection::kSendRecv;
@@ -71,7 +73,7 @@ void DefaultSignalingClient::UpdateLocalAudio(const std::string& mid,
     InternalStreamConfiguration internal_local_audio_configuration;
     local_audio_sources_[mid] = internal_local_audio_configuration;
   }
-    SetMute(local_audio_configuration.mute_state == MuteState::kMute);
+  SetMute(local_audio_configuration.mute_state == MuteState::kMute);
 }
 
 void DefaultSignalingClient::SendDataMessage(const DataMessageToSend& data_message_to_send) {
@@ -113,21 +115,21 @@ void DefaultSignalingClient::SendDataMessage(const DataMessageToSend& data_messa
 
 void DefaultSignalingClient::Start() {
   CHIME_LOG(LogLevel::kInfo, "Starting DefaultSignalingClient")
-  // TODO @hokyungh: check if cycle dependency can have memory leak.
+  // TODO: check if cycle dependency can have memory leak.
   state_ = SignalingState::kConnecting;
   signaling_transport_->Start();
 }
 
-void DefaultSignalingClient::Close() {
-  signaling_transport_->Stop();
-  local_video_sources_.clear();
-  local_audio_sources_.clear();
-  remote_video_sources_.clear();
-  attendee_id_to_internal_configurations_.clear();
-}
-
 void DefaultSignalingClient::Stop() {
   CHIME_LOG(LogLevel::kInfo, "Stopping DefaultSignalingClient")
+
+  // Wait for the signaling client to fully start before stopping to help avoid memory leaks from not closing the
+  // signaling client.
+  if (!has_received_first_index_) {
+    std::unique_lock<std::mutex> lock(stop_mutex_);
+    connecting_cv_.wait_for(lock, std::chrono::milliseconds(kConnectingMaxWaitMs), [&] { return has_received_first_index_; });
+  }
+
   if (state_ != SignalingState::kConnected) return;
   // Gracefully, shutting down if it is connected. It will call Close() to terminate when LEAVE_ACK is received.
   SendLeave();
@@ -167,7 +169,7 @@ void DefaultSignalingClient::UpdateRemoteVideoSubscriptions(
 
 bool DefaultSignalingClient::SendSubscribe() {
   if (state_ != SignalingState::kConnected) return false;
-  CHIME_LOG(LogLevel::kDebug, "Sending subscribe")
+  CHIME_LOG(LogLevel::kInfo, "Sending subscribe")
   signal_sdk::SdkStreamServiceType duplex = signal_sdk::SdkStreamServiceType::RX;
   signal_sdk::SdkSignalFrame signal_frame;
   signal_frame.set_type(signal_sdk::SdkSignalFrame_Type_SUBSCRIBE);
@@ -181,19 +183,20 @@ bool DefaultSignalingClient::SendSubscribe() {
   // This is to make sure we have each sdp section in order
   for (const auto& media_section : media_sections) {
     if (media_section.type == MediaType::kAudio) {
+      // For audio, needs to add 0 since this is what server side expects.
+      receive_streams.push_back(0);
       CHIME_LOG(LogLevel::kDebug, "Current mid " + media_section.mid)
       if (local_audio_sources_.find(media_section.mid) != local_audio_sources_.end()) {
         // No mid found, so we just need to have 0 for it.
         InternalStreamConfiguration& internal_local_stream_configuration = local_audio_sources_[media_section.mid];
-        // For audio, needs to add 0 since this is what server side expects.
-        receive_streams.push_back(0);
+
         signal_sdk::SdkStreamDescriptor stream_descriptor;
         stream_descriptor.set_stream_id(internal_local_stream_configuration.stream_id);
         stream_descriptor.set_group_id(internal_local_stream_configuration.group_id);
         stream_descriptor.set_max_bitrate_kbps(internal_local_stream_configuration.max_bitrate_kbps);
         stream_descriptors.emplace_back(stream_descriptor);
       }
-    } else {
+    } else if (media_section.type == MediaType::kVideo) {
       if (IsLocal(media_section.direction) && IsSending(media_section.direction)) {
         duplex = signal_sdk::SdkStreamServiceType::DUPLEX;
       }
@@ -208,15 +211,15 @@ bool DefaultSignalingClient::SendSubscribe() {
         stream_descriptors.emplace_back(stream_descriptor);
       } else {
         // Should be remote videos
-        // We'll filter out only those that builders wanted to subscribe which is called by
-        // UpdateRemoteVideoSubscriptions
-        auto it = remote_video_sources_.find(media_section.mid);
-        if (it == remote_video_sources_.end()) continue;
-
         if (media_section.direction == MediaDirection::kInactive) {
           // Following same behavior as video_client_impl
           receive_streams.push_back(0);
-        } else {
+        } else if (media_section.direction == MediaDirection::kRecvOnly) {
+          // We'll filter out only those that builders wanted to subscribe which is called by
+          // UpdateRemoteVideoSubscriptions
+          auto it = remote_video_sources_.find(media_section.mid);
+          if (it == remote_video_sources_.end()) continue;
+ 
           receive_streams.push_back(it->second.stream_id);
         }
       }
@@ -254,20 +257,45 @@ bool DefaultSignalingClient::SendJoin() {
   join_frame->set_protocol_version(2);
   join_frame->set_max_num_of_videos(25);
 
+// HAS_STREAM_UPDATE is needed for attendee presence
+  uint32_t flags = signal_sdk::EXCLUDE_SELF_CONTENT_IN_INDEX;
+  if (signaling_configuration_.enable_attendee_update) flags |= signal_sdk::HAS_STREAM_UPDATE;
+  join_frame->set_flags(flags);
+  // Don't use compression until implemented
+  join_frame->set_wants_compressed_sdp(false);
+
   // Add little bit more client information
   signal_sdk::SdkClientDetails* client_details = join_frame->mutable_client_details();
   client_details->set_client_source("amazon-chime-sdk-cpp");
   client_details->set_chime_sdk_version(PROJECT_VERSION);
 
-  // HAS_STREAM_UPDATE is needed for attendee presence
-  uint32_t flags = signal_sdk::EXCLUDE_SELF_CONTENT_IN_INDEX;
-  if (signaling_configuration_.enable_attendee_update) flags |= signal_sdk::HAS_STREAM_UPDATE;
-  join_frame->set_flags(flags);
-
   return signaling_transport_->SendSignalFrame(signal_frame);
 }
 
+void DefaultSignalingClient::Close() {
+  signaling_transport_->Stop();
+  local_video_sources_.clear();
+  local_audio_sources_.clear();
+  remote_video_sources_.clear();
+  attendee_id_to_internal_configurations_.clear();
+}
+
 void DefaultSignalingClient::OnSignalFrameReceived(const signal_sdk::SdkSignalFrame& frame) {
+  if (frame.has_error()) {
+    uint32_t status = frame.error().status();
+    CHIME_LOG(LogLevel::kWarning, "error in signal frame; status=" + std::to_string(status) + " description=" + frame.error().description());
+    if (status >= 400 && status < 500) {
+      ended_type_ = SignalingClientStatusType::kBadRequest;
+      Stop();
+      return;
+    } else if (status >= 500 && status < 600) {
+      // Retryable error
+      ended_type_ = SignalingClientStatusType::kServerInternalError;
+      Stop();
+      return;
+    }
+  }
+
   switch (frame.type()) {
     case signal_sdk::SdkSignalFrame::JOIN_ACK:
       CHIME_LOG(LogLevel::kInfo, "Join is successful")
@@ -285,7 +313,7 @@ void DefaultSignalingClient::OnSignalFrameReceived(const signal_sdk::SdkSignalFr
       HandleSubAckFrame(frame.suback());
       break;
     case signal_sdk::SdkSignalFrame::BITRATES:
-      // TODO @hokyungh: implement it.
+      // TODO: implement it.
       break;
     case signal_sdk::SdkSignalFrame::AUDIO_METADATA:
       if (audio_frame_adapter_) audio_frame_adapter_->OnAudioMetadata(frame.audio_metadata());
@@ -296,9 +324,12 @@ void DefaultSignalingClient::OnSignalFrameReceived(const signal_sdk::SdkSignalFr
     case signal_sdk::SdkSignalFrame::DATA_MESSAGE:
       HandleDataMessageFrame(frame.data_message());
       break;
+    case signal_sdk::SdkSignalFrame::AUDIO_STATUS:
+      if (frame.has_audio_status()) HandleAudioStatus(frame.audio_status());
+      break;
     default:
       // Unexpected type
-      CHIME_LOG(LogLevel::kDebug, "Received unexpected signaling type: " + std::to_string(frame.type()))
+      CHIME_LOG(LogLevel::kWarning, "Received unexpected signaling type: " + std::to_string(frame.type()))
       break;
   }
 }
@@ -316,7 +347,11 @@ void DefaultSignalingClient::OnSignalingErrorReceived(const SignalingError& erro
 
   is_joined_ = false;
   SignalingClientStatus status;
-  status.type = SignalingClientStatusType::kClientError;
+  if (ended_type_ == SignalingClientStatusType::kOk) {
+    status.type = SignalingClientStatusType::kClientError;
+  } else {
+    status.type = ended_type_;
+  }
   status.reason = error.description;
 
   NotifySignalingObserver(
@@ -382,7 +417,7 @@ void DefaultSignalingClient::HandleIndexFrame(const signal_sdk::SdkIndexFrame& i
   }
 
   if (index_frame.has_at_capacity() && index_frame.at_capacity()) {
-    // TODO @hokyungh: handle capacity
+    // TODO: handle capacity
     CHIME_LOG(LogLevel::kWarning, "It reached video max capacity")
     return;
   }
@@ -401,6 +436,8 @@ void DefaultSignalingClient::HandleIndexFrame(const signal_sdk::SdkIndexFrame& i
       remote_video_source.max_bitrate_kbps = pair.second.max_bitrate_kbps;
       remote_video_source.attendee.attendee_id = pair.second.attendee.attendee_id;
       remote_video_source.attendee.external_user_id = pair.second.attendee.external_user_id;
+      remote_video_source.stream_id = pair.second.stream_id;
+      remote_video_source.group_id = pair.second.group_id;
       removed.push_back(remote_video_source);
     }
   }
@@ -429,6 +466,7 @@ void DefaultSignalingClient::HandleIndexFrame(const signal_sdk::SdkIndexFrame& i
       remote_video_source.attendee.external_user_id = stream.external_user_id();
       remote_video_source.max_bitrate_kbps = stream.max_bitrate_kbps();
       remote_video_source.stream_id = stream.stream_id();
+      remote_video_source.group_id = stream.group_id();
 
       sources.push_back(remote_video_source);
     } else {
@@ -452,6 +490,7 @@ void DefaultSignalingClient::HandleIndexFrame(const signal_sdk::SdkIndexFrame& i
     NotifySignalingObserver([&credentials, &sources](SignalingClientObserver* observer) -> void {
       observer->OnSignalingClientStarted({credentials, sources});
     });
+    connecting_cv_.notify_one();
 
     // No need to call OnRemoteVideoSourcesAvailable or OnRemoteVideoSourcesUnavailable for the first time
     return;
@@ -532,7 +571,7 @@ void DefaultSignalingClient::HandleSubAckFrame(const signal_sdk::SdkSubscribeAck
   std::vector<MediaSection> media_sections = SDPUtils::ParseSDP(subscribe_ack_frame.sdp_answer());
 
   int allocationInd = 0;
-  // TODO @hokyungh: This is best try on mapping between local and mid.
+  // TODO: This is best try on mapping between local and mid.
   // It might be best if server also gives mid so that we don't have to manage this mapping
   for (const auto& media_section : media_sections) {
     if (allocationInd >= subscribe_ack_frame.allocations_size() ||
@@ -626,7 +665,18 @@ void DefaultSignalingClient::AddLocalAudio(const std::string& mid,
 }
 void DefaultSignalingClient::RemoveLocalAudio(const std::string& mid) { local_audio_sources_.erase(mid); }
 
+void DefaultSignalingClient::HandleAudioStatus(const signal_sdk::SdkAudioStatusFrame& audio_status_frame) {
+  if (audio_status_frame.audio_status() == 410 || audio_status_frame.audio_status() == 301) {
+    CHIME_LOG(LogLevel::kWarning, "Received server error status of " + std::to_string(audio_status_frame.audio_status()));
+    if (audio_status_frame.audio_status() == 410) ended_type_ = SignalingClientStatusType::kMeetingEnded;
+    else if (audio_status_frame.audio_status() == 301) ended_type_ = SignalingClientStatusType::kJoinFromAnotherDevice;
+    Stop();
+  }
+}
+
 bool DefaultSignalingClient::SendLeave() {
+  if (state_ != SignalingState::kConnected) return false;
+  CHIME_LOG(LogLevel::kInfo, "Sending Leave frame")
   signal_sdk::SdkSignalFrame signal_frame;
   signal_frame.set_type(signal_sdk::SdkSignalFrame_Type_LEAVE);
   return signaling_transport_->SendSignalFrame(signal_frame);

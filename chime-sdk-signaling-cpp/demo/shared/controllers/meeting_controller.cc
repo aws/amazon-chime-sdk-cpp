@@ -56,7 +56,7 @@ std::unique_ptr<MeetingController> MeetingController::Create(MeetingControllerCo
   dependencies.log_sink = std::make_unique<LogSink>();
   SetSignalingLogLevel(configuration.log_level);
   rtc::LogMessage::AddLogToStream(dependencies.log_sink.get(), rtc::LS_VERBOSE);
-
+  rtc::LogMessage::LogToDebug(rtc::LS_NONE);
 
   webrtc::PeerConnectionFactoryDependencies peer_connection_factory_dependencies;
   peer_connection_factory_dependencies.signaling_thread = dependencies.signaling_thread.get();

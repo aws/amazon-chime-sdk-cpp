@@ -14,6 +14,7 @@ namespace chime {
  */
 struct DefaultSignalingDependencies {
   std::unique_ptr<SignalingTransportFactory> signal_transport_factory;
+  DefaultSignalingDependencies() = default;
   // Not assignable or copyable
   DefaultSignalingDependencies& operator=(const DefaultSignalingDependencies&) = delete;
   DefaultSignalingDependencies(const DefaultSignalingDependencies&) = delete;

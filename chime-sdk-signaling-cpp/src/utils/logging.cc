@@ -2,6 +2,7 @@
 
 #include "logging.h"
 
+#include <ctime>
 #include <iostream>
 
 namespace chime {
@@ -56,9 +57,13 @@ void SetSignalingLogLevel(std::string level) {
 void Log(LogLevel current_log_level, LogLevel given_log_level, const std::string& log_message) {
   auto current_level_val = static_cast<int>(current_log_level);
   auto given_level_val = static_cast<int>(given_log_level);
+  auto t = std::time(nullptr);
+  auto tm = *std::localtime(&t);
+  char buffer[80];
+  strftime(buffer,sizeof(buffer),"%H:%M:%S", &tm);
+  std::string str(buffer);
 
   if (current_level_val > given_level_val) return;
-  std::cout << "[" << LogLevelToString(given_log_level) << "]: " << log_message << std::endl;
-}
-
+  std::cout << "(" << str << ") " << "[" << LogLevelToString(given_log_level) << "]: " << log_message << std::endl;
+  }
 }  // namespace chime

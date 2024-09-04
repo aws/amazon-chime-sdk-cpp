@@ -3,7 +3,7 @@
 # Default values. Feel free to override these instead of providing as arguments every run.
 MEETING_URL=""
 REGION="us-east-1"
-LOG_LEVEL="error"
+LOG_LEVEL="info"
 
 usage() {
   echo "Usage: $0 -m <meeting> -a <attendee> [options]"
