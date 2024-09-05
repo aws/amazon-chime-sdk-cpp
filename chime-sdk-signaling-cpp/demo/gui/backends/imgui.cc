@@ -70,9 +70,9 @@ void ImGuiVideoConferencingApplication::renderGui() {
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-std::shared_ptr<RemoteVideoTile> ImGuiVideoConferencingApplication::addRemoteVideo() {
+std::shared_ptr<VideoConferencingTile> ImGuiVideoConferencingApplication::addRemoteVideo() {
     // Implementation to add a remote video tile
-    return std::make_shared<RemoteVideoTileImpl>();
+    return nullptr;
 }
 
 void ImGuiVideoConferencingApplication::setupImGui(GLFWwindow* window) {

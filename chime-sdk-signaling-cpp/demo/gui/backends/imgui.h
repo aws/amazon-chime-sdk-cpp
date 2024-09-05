@@ -13,7 +13,7 @@ public:
 
     void run() override;
     void stop() override;
-    std::shared_ptr<RemoteVideoTile> addRemoteVideo() override;
+    std::shared_ptr<VideoConferencingTile> addRemoteVideo() override;
 
 private:
     GLFWwindow* window;

@@ -25,6 +25,8 @@ endif()
 
 add_executable(${CLI_NAME} 
         main.cc
+        backends/imgui.cc
+        backends/imgui.h
         ../shared/controllers/meeting_controller.h
         ../shared/controllers/meeting_controller.cc
         ../shared/controllers/meeting_controller_dependencies.h
