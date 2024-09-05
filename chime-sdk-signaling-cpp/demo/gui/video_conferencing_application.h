@@ -1,4 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#ifndef VIDEO_CONFERENCING_APPLICATION_H
+#define VIDEO_CONFERENCING_APPLICATION_H
+
 #include <cstdint>
 #include <memory>
 
@@ -27,3 +30,5 @@ public:
     virtual void stop() = 0;  // Signal to stop the GUI event loop
     virtual std::shared_ptr<VideoConferencingTile> addRemoteVideo() = 0; // Add and manage a remote video tile
 };
+
+#endif // VIDEO_CONFERENCING_APPLICATION_H

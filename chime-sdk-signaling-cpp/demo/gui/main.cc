@@ -74,14 +74,8 @@ public:
 int main(int argc, char* argv[]) {
   webrtc::PeerConnectionFactoryDependencies peer_connection_factory_dependencies;
 
-  std::optional<MeetingSessionConfiguration> meeting_configuration = createMeetingConfiguration(result);
-  if (!meeting_configuration) {
-      std::cout << "Could not create meeting configuration. You may be missing a value" << std::endl;
-      return 0;
-  }
-
   SignalingClientConfiguration signaling_configuration;
-  signaling_configuration.meeting_configuration = *meeting_configuration;
+  signaling_configuration.meeting_configuration = {};
 
   DefaultSignalingDependencies signaling_dependencies {};
   auto client =
