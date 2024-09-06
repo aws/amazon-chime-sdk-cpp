@@ -139,3 +139,22 @@ target_link_libraries(${CLI_NAME} PRIVATE -lcap)
 if (NOT MSVC)
     target_compile_options(${CLI_NAME} PRIVATE "-fno-rtti")
 endif()
+
+
+find_package(PkgConfig REQUIRED)
+
+# Find GLib
+pkg_check_modules(GLIB REQUIRED glib-2.0)
+
+# Find GObject
+pkg_check_modules(GOBJECT REQUIRED gobject-2.0)
+
+# Include directories for GLib and GObject
+include_directories(${CLI_NAME} PRIVATE ${GLIB_INCLUDE_DIRS})
+include_directories(${CLI_NAME} PRIVATE ${GOBJECT_INCLUDE_DIRS})
+
+# Link libraries to your target (replace 'your_target' with your actual target name)
+target_link_libraries(${CLI_NAME} PRIVATE
+    ${GLIB_LIBRARIES}
+    ${GOBJECT_LIBRARIES}
+)
