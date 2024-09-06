@@ -29,6 +29,7 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
     params.emplace("title", meeting);
     params.emplace("name", attendee);
     params.emplace("region", region);
+    std::cerr << "HERE  " << base_url << std::endl;
 
     // Make the POST request
     httplib::Result res = cli.Post("/Prod/join", params);
