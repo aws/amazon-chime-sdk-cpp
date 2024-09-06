@@ -29,7 +29,7 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
 
     // Make the POST request
     auto res = cli.Post(request_url.c_str());
-    if (!res || res->status != 200) {
+    if (!res) {
         std::cerr << "Failed to make request to " << request_url << std::endl;
         return std::nullopt;
     }
