@@ -24,7 +24,7 @@
 
 std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(const std::string& base_url, const std::string& meeting, const std::string& attendee, const std::string& region) {
     // Set up HTTP client
-    httplib::Client cli("x95usfs6tl.execute-api.us-east-1.amazonaws.com");
+    httplib::SSLClient cli("x95usfs6tl.execute-api.us-east-1.amazonaws.com");
 
     // Create the parameters object
     httplib::Params params;
@@ -40,6 +40,7 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
         return std::nullopt;
     } else if (res->status != 200) {
         std::cerr << "Server returned " << res->status << " in request to " << base_url << std::endl;
+        std::cerr << "Server returned " << res->body << " in request to " << base_url << std::endl;
         return std::nullopt;
     }
     abort();
