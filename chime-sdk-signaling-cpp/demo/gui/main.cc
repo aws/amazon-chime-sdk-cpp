@@ -18,6 +18,7 @@
 
 #include "backends/imgui.h"
 #include "video_conferencing_application.h"
+#include "meeting_application_observer.h"
 
 #include <iostream>
 #include <memory>
