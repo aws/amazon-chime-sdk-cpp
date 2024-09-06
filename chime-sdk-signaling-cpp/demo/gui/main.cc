@@ -19,7 +19,6 @@
 #include "backends/imgui.h"
 #include "video_conferencing_application.h"
 #include "meeting_application_observer.h"
-#include "utils/fetch_from_serverless_demo.h"
 
 #include <iostream>
 #include <memory>

@@ -1,4 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#ifndef MEETING_APPLICATION_OBSERVER_H
+#define MEETING_APPLICATION_OBSERVER_H
+
 #include "utils/logging.h"
 
 #include "controllers/meeting_controller.h"
@@ -39,3 +42,5 @@ public:
 private:
     std::shared_ptr<MeetingController> meetingController;
 };
+
+#endif MEETING_APPLICATION_OBSERVER_H

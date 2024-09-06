@@ -1,10 +1,12 @@
 #include "meeting_application_observer.h"
-    
+
+#include "utils/fetch_from_serverless_demo.h"
+
 // Constructor accepting a pointer to an existing MeetingController
-explicit MeetingApplicationObserver::MeetingApplicationObserver(MeetingController* controller)
+MeetingApplicationObserver::MeetingApplicationObserver(MeetingController* controller)
     : meetingController(controller) {}
 
-void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, const std::string& meeting_name, const std::string& attendee_name) override {
+void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, const std::string& meeting_name, const std::string& attendee_name) {
     auto config = fetchCredentialsFromServerlessDemo(url, meeting, attendee, "us-east-1");
     if (config) {
         std::cout << "Configuration fetched successfully!" << std::endl;
@@ -45,32 +47,32 @@ void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, 
 }
 
 // Implement observer methods to forward Application actions to the MeetingController
-void MeetingApplicationObserver::onStartConference() override {
+void MeetingApplicationObserver::onStartConference() {
     if (meetingController) {
         meetingController->Start();
     }
 }
 
-void MeetingApplicationObserver::onStopConference() override {
+void MeetingApplicationObserver::onStopConference() {
     if (meetingController) {
         meetingController->Stop();
     }
 }
 
-void MeetingApplicationObserver::onEnableVideo() override {
+void MeetingApplicationObserver::onEnableVideo() {
     if (meetingController) {
         meetingController->StartLocalVideo();
     }
 }
 
-void MeetingApplicationObserver::onDisableVideo() override {
+void MeetingApplicationObserver::onDisableVideo() {
     // Add handling if the API supports stopping the video
 }
 
-void MeetingApplicationObserver::onMuteAudio() override {
+void MeetingApplicationObserver::onMuteAudio() {
     // Add handling if the API supports muting the audio
 }
 
-void MeetingApplicationObserver::onUnmuteAudio() override {
+void MeetingApplicationObserver::onUnmuteAudio() {
     // Add handling if the API supports unmuting the audio
 }
