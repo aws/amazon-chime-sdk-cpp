@@ -34,7 +34,7 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
     std::cerr << "HERE  " << base_url << std::endl;
 
     // Make the POST request
-    httplib::Result res = cli.Get("/");
+    httplib::Result res = cli.Get("/Prod/join");
     if (!res) {
         std::cout << "Request error: " + to_string(res.error()) << std::endl;        
         return std::nullopt;
