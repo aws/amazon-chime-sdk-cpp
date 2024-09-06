@@ -4,10 +4,10 @@
 
 // Constructor accepting a pointer to an existing MeetingController
 MeetingApplicationObserver::MeetingApplicationObserver(MeetingController* controller)
-    : meetingController(controller) {}
+    : meeting_controller_(controller) {}
 
 void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, const std::string& meeting_name, const std::string& attendee_name) {
-    auto config = fetchCredentialsFromServerlessDemo(url, meeting, attendee, "us-east-1");
+    auto config = fetchCredentialsFromServerlessDemo(url, meeting_name, attendee_name, "us-east-1");
     if (config) {
         std::cout << "Configuration fetched successfully!" << std::endl;
     } else {
@@ -26,7 +26,7 @@ void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, 
     MeetingControllerConfiguration configuration;
     configuration.meeting_configuration = {};
     auto session_description_observer = std::make_unique<SessionDescriptionObserver>();
-    controller = MeetingController::Create(configuration, std::move(client), session_description_observer.get());
+    meeting_controller_ = MeetingController::Create(configuration, std::move(client), session_description_observer.get());
 
     session_description_observer->controller_ = controller.get();
     auto peer_connection_observer = std::make_unique<PeerConnectionObserver>(controller.get());
@@ -48,20 +48,20 @@ void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, 
 
 // Implement observer methods to forward Application actions to the MeetingController
 void MeetingApplicationObserver::onStartConference() {
-    if (meetingController) {
-        meetingController->Start();
+    if (meeting_controller_) {
+        meeting_controller_->Start();
     }
 }
 
 void MeetingApplicationObserver::onStopConference() {
-    if (meetingController) {
-        meetingController->Stop();
+    if (meeting_controller_) {
+        meeting_controller_->Stop();
     }
 }
 
 void MeetingApplicationObserver::onEnableVideo() {
-    if (meetingController) {
-        meetingController->StartLocalVideo();
+    if (meeting_controller_) {
+        meeting_controller_->StartLocalVideo();
     }
 }
 

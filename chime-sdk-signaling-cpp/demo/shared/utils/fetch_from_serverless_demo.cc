@@ -1,4 +1,5 @@
-#include "controllers/meeting_controller.h"
+#include "utils/fetch_from_serverless_demo.h"
+
 #include "controllers/meeting_controller_configuration.h"
 #include "controllers/meeting_controller_dependencies.h"
 #include "observers/audio_events_observer.h"

@@ -40,7 +40,7 @@ public:
     void onUnmuteAudio() override;
 
 private:
-    std::shared_ptr<MeetingController> meetingController;
+    std::shared_ptr<MeetingController> meeting_controller_;
 };
 
-#endif MEETING_APPLICATION_OBSERVER_H
+#endif // MEETING_APPLICATION_OBSERVER_H
