@@ -58,22 +58,13 @@ add_executable(${CLI_NAME}
 
 include(FetchContent)
 
-FetchContent_Declare(httplib SYSTEM
-    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib
-    GIT_TAG master
-    GIT_SHALLOW TRUE)
-FetchContent_MakeAvailable(httplib)
-target_compile_definitions(${CLI_NAME} PUBLIC OPENSSL_IS_BORINGSSL)
-target_compile_definitions(${CLI_NAME} PUBLIC CPPHTTPLIB_OPENSSL_SUPPORT)
-target_link_libraries(${CLI_NAME} PRIVATE httplib)
-
-
-FetchContent_Declare(json
-    GIT_REPOSITORY https://github.com/nlohmann/json
-    GIT_TAG v3.11.3
+FetchContent_Declare(
+    cxxopts
+    GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+    GIT_TAG        v3.2.1
 )
-FetchContent_MakeAvailable(json)
-target_link_libraries(${CLI_NAME} PRIVATE nlohmann_json::nlohmann_json)
+set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "Enable CXXOPS TEST" FORCE)
+FetchContent_MakeAvailable(cxxopts)
 
 FetchContent_Declare(
         glfw

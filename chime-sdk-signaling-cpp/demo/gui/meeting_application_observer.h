@@ -28,10 +28,9 @@
 
 class MeetingApplicationObserver : public VideoConferencingApplicationObserver {
 public:
-    explicit MeetingApplicationObserver(MeetingController* controller);
+    explicit MeetingApplicationObserver(std::shared_ptr<MeetingController> controller);
     virtual ~MeetingApplicationObserver() {}
 
-    void onMeetingJoinRequested(const std::string& url, const std::string& meeting_name, const std::string& attendee_name) override;
     void onStartConference() override;
     void onStopConference() override;
     void onEnableVideo() override;
