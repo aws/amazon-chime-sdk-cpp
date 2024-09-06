@@ -14,8 +14,6 @@
 #include "signaling/signaling_client_configuration.h"
 #include "signaling/default_signaling_client_factory.h"
 
-#define CPPHTTPLIB_OPENSSL_SUPPORT
-#define OPENSSL_IS_BORINGSSL
 #include <httplib.h>
 
 #include <nlohmann/json.hpp>

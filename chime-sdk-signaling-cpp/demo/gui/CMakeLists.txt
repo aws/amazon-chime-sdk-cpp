@@ -63,6 +63,8 @@ FetchContent_Declare(httplib SYSTEM
     GIT_TAG master
     GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(httplib)
+target_compile_definitions(${CLI_NAME} PUBLIC OPENSSL_IS_BORINGSSL)
+target_compile_definitions(${CLI_NAME} PUBLIC CPPHTTPLIB_OPENSSL_SUPPORT)
 target_link_libraries(${CLI_NAME} PRIVATE httplib)
 
 
