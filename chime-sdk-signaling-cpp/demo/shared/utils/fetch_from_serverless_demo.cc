@@ -27,14 +27,14 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
     httplib::Client cli("x95usfs6tl.execute-api.us-east-1.amazonaws.com");
 
     // Create the parameters object
-    // httplib::Params params;
-    // params.emplace("title", meeting);
-    // params.emplace("name", attendee);
-    // params.emplace("region", region);
+    httplib::Params params;
+    params.emplace("title", "meeting");
+    params.emplace("name", "attendee");
+    params.emplace("region", "region");
     std::cerr << "HERE  " << base_url << std::endl;
 
     // Make the POST request
-    httplib::Result res = cli.Post("/Prod/join", "name=john1&title=asdfwer");
+    httplib::Result res = cli.Post("/Prod/join", params);
     if (!res) {
         std::cout << "Request error: " + to_string(res.error()) << std::endl;        
         return std::nullopt;
