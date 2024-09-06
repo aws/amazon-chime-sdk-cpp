@@ -98,20 +98,25 @@ void ImGuiVideoConferencingApplication::renderGui() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+    // Use the full display area for ImGui window
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+
     if (!showMeetingControls_) {
-        ImGui::Begin("Join Meeting");
+        ImGui::Begin("Join Meeting", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
         ImGui::InputText("Serverless Demo URL", url_, sizeof(url_));
         ImGui::InputText("Meeting Name", meetingName_, sizeof(meetingName_));
         ImGui::InputText("Attendee Name", attendeeName_, sizeof(attendeeName_));
         if (ImGui::Button("Start")) {
             showMeetingControls_ = true;
-            observer_->onMeetingJoinRequested(url_, meetingName_, attendeeName_); // Assume this method initiates the conference
+            observer_->onMeetingJoinRequested(url_, meetingName_, attendeeName_);
         }
         ImGui::End();
     } else {
-        ImGui::Begin("Video Conferencing Controls");
+        ImGui::Begin("Video Conferencing Controls", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
         if (ImGui::Button("Start Conference")) observer_->onStartConference();
         if (ImGui::Button("Stop Conference")) observer_->onStopConference();
         if (ImGui::Button("Enable Video")) observer_->onEnableVideo();

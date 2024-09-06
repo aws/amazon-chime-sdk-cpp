@@ -21,14 +21,17 @@
 #include <string>
 
 std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(const std::string& base_url, const std::string& meeting, const std::string& attendee, const std::string& region) {
-    // Create the request URL
-    std::string request_url = base_url + "join?title=" + meeting + "&name=" + attendee + "&region=" + region;
-
     // Set up HTTP client
     httplib::Client cli(base_url.c_str());
 
+    // Create the parameters object
+    httplib::Params params;
+    params.emplace("title", meeting);
+    params.emplace("name", attendee);
+    params.emplace("region", region);
+
     // Make the POST request
-    auto res = cli.Post(request_url.c_str());
+    auto res = cli.Post("/join", params);
     if (!res) {
         std::cerr << "Failed to make request to " << request_url << std::endl;
         return std::nullopt;
