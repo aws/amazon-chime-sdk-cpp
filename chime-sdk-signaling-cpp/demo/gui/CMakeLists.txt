@@ -63,6 +63,7 @@ FetchContent_Declare(
 )
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "Enable CXXOPS TEST" FORCE)
 FetchContent_MakeAvailable(cxxopts)
+target_link_libraries(${CLI_NAME} PUBLIC cxxopts)
 
 FetchContent_Declare(
         glfw
