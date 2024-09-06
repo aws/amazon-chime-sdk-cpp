@@ -1,7 +1,7 @@
 #include "meeting_application_observer.h"
 
 // Constructor accepting a pointer to an existing MeetingController
-MeetingApplicationObserver::MeetingApplicationObserver(MeetingController* controller)
+MeetingApplicationObserver::MeetingApplicationObserver(std::shared_ptr<MeetingController> controller)
     : meeting_controller_(controller) {}
 
 // Implement observer methods to forward Application actions to the MeetingController
