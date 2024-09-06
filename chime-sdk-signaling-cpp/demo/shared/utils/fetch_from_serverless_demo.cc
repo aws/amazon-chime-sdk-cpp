@@ -31,12 +31,11 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
     params.emplace("region", region);
 
     // Make the POST request
-    auto res = cli.Post("/join", params);
+    Result res = cli.Post("/join", params);
     if (!res) {
-        std::cerr << "Failed to make request to " << base_url << std::endl;
+        std::cout << "Request error: " + to_string(res.error()) << std::endl;        
         return std::nullopt;
-    }
-    if (res->status != 200) {
+    } else if (res->status != 200) {
         std::cerr << "Server returned " << res->status << " in request to " << base_url << std::endl;
         return std::nullopt;
     }
