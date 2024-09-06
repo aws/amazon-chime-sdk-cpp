@@ -69,7 +69,7 @@ FetchContent_Declare(json
     GIT_TAG v3.11.3
 )
 FetchContent_MakeAvailable(json)
-target_link_libraries(${CLI_NAME} PRIVATE json)
+target_link_libraries(example PRIVATE nlohmann_json::nlohmann_json)
 
 FetchContent_Declare(
         glfw
