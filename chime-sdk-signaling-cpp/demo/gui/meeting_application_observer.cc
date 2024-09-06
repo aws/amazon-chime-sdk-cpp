@@ -28,7 +28,7 @@ void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, 
     auto session_description_observer = std::make_unique<SessionDescriptionObserver>();
     meeting_controller_ = MeetingController::Create(configuration, std::move(client), session_description_observer.get());
 
-    session_description_observer->controller_ = controller.get();
+    session_description_observer->controller_ = meeting_controller_.get();
     auto peer_connection_observer = std::make_unique<PeerConnectionObserver>(controller.get());
     auto audio_events_observer = std::make_unique<AudioEventsObserver>();
     controller->signaling_client_->AddSignalingClientObserver(audio_events_observer.get());
