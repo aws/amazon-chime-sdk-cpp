@@ -127,6 +127,8 @@ if(X11_FOUND)
 endif()
 target_link_libraries(${CLI_NAME} PUBLIC glfw ${X11_LIBRARIES})
 
+target_link_libraries(${CLI_NAME} PRIVATE -lcap)
+
 if (NOT MSVC)
     target_compile_options(${CLI_NAME} PRIVATE "-fno-rtti")
 endif()

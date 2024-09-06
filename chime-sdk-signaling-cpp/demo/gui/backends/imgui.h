@@ -22,7 +22,7 @@ private:
 
     void initialize();
     void renderGui();
-    void setupImGui(GLFWwindow* window);
+    void setupImGui(GLFWwindow* window, const char* glsl_version);
     void cleanupImGui();
 };
 

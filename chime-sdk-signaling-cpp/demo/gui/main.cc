@@ -104,12 +104,12 @@ int main(int argc, char* argv[]) {
   auto presence_events_observer = std::make_unique<PresenceEventsObserver>();
   controller->signaling_client_->AddSignalingClientObserver(presence_events_observer.get());
 
-  controller->Start();
+//   controller->Start();
 
     try {
-        MeetingGuiObserver observer(meetingController.get());
+        MeetingApplicationObserver observer(controller.get());
         // Set up the GUI with the observer
-        ImGuiVideoConferencingGui gui(&observer);
+        ImGuiVideoConferencingApplication gui(&observer);
         gui.run();
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
