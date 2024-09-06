@@ -31,7 +31,7 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
     params.emplace("region", region);
 
     // Make the POST request
-    httplib::Result res = cli.Post("/join", params);
+    httplib::Result res = cli.Post("/Prod/join", params);
     if (!res) {
         std::cout << "Request error: " + to_string(res.error()) << std::endl;        
         return std::nullopt;
