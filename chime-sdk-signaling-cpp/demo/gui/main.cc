@@ -33,7 +33,7 @@ public:
 
     virtual ~MeetingApplicationObserver() {}
 
-    void onMeetingJoinRequested(const std::string url, const std::string& meeting_name, const std::string& attendee_name) override {
+    void onMeetingJoinRequested(const std::string& url, const std::string& meeting_name, const std::string& attendee_name) override {
         auto config = fetchCredentialsFromServerlessDemo(url, meeting, attendee, "us-east-1");
         if (config) {
             std::cout << "Configuration fetched successfully!" << std::endl;
@@ -105,7 +105,7 @@ public:
     }
 
 private:
-    shared_ptr<MeetingController> meetingController;
+    std::shared_ptr<MeetingController> meetingController;
 };
 
 int main(int argc, char* argv[]) {
