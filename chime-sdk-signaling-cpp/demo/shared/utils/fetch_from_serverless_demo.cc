@@ -24,7 +24,7 @@
 
 std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(const std::string& base_url, const std::string& meeting, const std::string& attendee, const std::string& region) {
     // Set up HTTP client
-    httplib::Client cli("https://google.com");
+    httplib::Client cli("google.com");
 
     // Create the parameters object
     // httplib::Params params;
