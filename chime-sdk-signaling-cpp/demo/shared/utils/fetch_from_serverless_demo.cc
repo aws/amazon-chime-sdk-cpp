@@ -42,6 +42,7 @@ std::optional<MeetingSessionConfiguration> fetchCredentialsFromServerlessDemo(co
         std::cerr << "Server returned " << res->status << " in request to " << base_url << std::endl;
         return std::nullopt;
     }
+    abort()
 
     // Parse JSON data from response
     auto json = nlohmann::json::parse(res->body);
