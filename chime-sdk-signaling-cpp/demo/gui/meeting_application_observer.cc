@@ -29,21 +29,21 @@ void MeetingApplicationObserver::onMeetingJoinRequested(const std::string& url, 
     meeting_controller_ = MeetingController::Create(configuration, std::move(client), session_description_observer.get());
 
     session_description_observer->controller_ = meeting_controller_.get();
-    auto peer_connection_observer = std::make_unique<PeerConnectionObserver>(controller.get());
+    auto peer_connection_observer = std::make_unique<PeerConnectionObserver>(meeting_controller_.get());
     auto audio_events_observer = std::make_unique<AudioEventsObserver>();
-    controller->signaling_client_->AddSignalingClientObserver(audio_events_observer.get());
+    meeting_controller_->signaling_client_->AddSignalingClientObserver(audio_events_observer.get());
     auto data_message_observer = std::make_unique<DataMessageObserver>();
-    controller->signaling_client_->AddSignalingClientObserver(data_message_observer.get());
-    auto video_events_observer = std::make_unique<VideoEventsObserver>(controller.get(),
+    meeting_controller_->signaling_client_->AddSignalingClientObserver(data_message_observer.get());
+    auto video_events_observer = std::make_unique<VideoEventsObserver>(meeting_controller_.get(),
                                                                         session_description_observer.get());
-    controller->signaling_client_->AddSignalingClientObserver(video_events_observer.get());
-    auto lifecycle_observer = std::make_unique<LifecycleObserver>(controller.get(),
+    meeting_controller_->signaling_client_->AddSignalingClientObserver(video_events_observer.get());
+    auto lifecycle_observer = std::make_unique<LifecycleObserver>(meeting_controller_.get(),
                                                                     peer_connection_observer.get(),
                                                                     video_events_observer.get(),
                                                                     session_description_observer.get());
-    controller->signaling_client_->AddSignalingClientObserver(lifecycle_observer.get());
+    meeting_controller_->signaling_client_->AddSignalingClientObserver(lifecycle_observer.get());
     auto presence_events_observer = std::make_unique<PresenceEventsObserver>();
-    controller->signaling_client_->AddSignalingClientObserver(presence_events_observer.get());
+    meeting_controller_->signaling_client_->AddSignalingClientObserver(presence_events_observer.get());
 }
 
 // Implement observer methods to forward Application actions to the MeetingController
