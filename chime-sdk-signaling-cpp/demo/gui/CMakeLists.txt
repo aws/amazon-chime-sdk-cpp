@@ -52,8 +52,6 @@ add_executable(${CLI_NAME}
         ../shared/video/fake_video_source.h
         ../shared/video/write_to_file_yuv_video_sink.cc
         ../shared/video/write_to_file_yuv_video_sink.h
-        ../shared/utils/fetch_from_serverless_demo.cc
-        ../shared/utils/fetch_from_serverless_demo.h
         )
 
 include(FetchContent)
