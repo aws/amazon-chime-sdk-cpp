@@ -143,18 +143,12 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 
-# Find GLib
 pkg_check_modules(GLIB REQUIRED glib-2.0)
-
-# Find GObject
 pkg_check_modules(GOBJECT REQUIRED gobject-2.0)
+pkg_check_modules(GIO REQUIRED gio-2.0)
 
-# Include directories for GLib and GObject
-include_directories(${CLI_NAME} PRIVATE ${GLIB_INCLUDE_DIRS})
-include_directories(${CLI_NAME} PRIVATE ${GOBJECT_INCLUDE_DIRS})
-
-# Link libraries to your target (replace 'your_target' with your actual target name)
-target_link_libraries(${CLI_NAME} PRIVATE
-    ${GLIB_LIBRARIES}
-    ${GOBJECT_LIBRARIES}
-)
+# Include directories
+include_directories(${CLI_NAME} PRIVATE ${GLIB_INCLUDE_DIRS} ${GOBJECT_INCLUDE_DIRS} ${GIO_INCLUDE_DIRS})
+link_directories(${CLI_NAME} PRIVATE ${GLIB_LIBRARY_DIRS} ${GOBJECT_LIBRARY_DIRS} ${GIO_LIBRARY_DIRS})
+# Link libraries to your target
+target_link_libraries(${CLI_NAME} PRIVATE  ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} ${GIO_LIBRARIES})
