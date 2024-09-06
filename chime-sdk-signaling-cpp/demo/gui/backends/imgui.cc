@@ -104,27 +104,15 @@ void ImGuiVideoConferencingApplication::renderGui() {
     // Use the full display area for ImGui window
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-
-    if (!showMeetingControls_) {
-        ImGui::Begin("Join Meeting", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-        ImGui::InputText("Serverless Demo URL", url_, sizeof(url_));
-        ImGui::InputText("Meeting Name", meetingName_, sizeof(meetingName_));
-        ImGui::InputText("Attendee Name", attendeeName_, sizeof(attendeeName_));
-        if (ImGui::Button("Start")) {
-            showMeetingControls_ = true;
-            observer_->onMeetingJoinRequested(url_, meetingName_, attendeeName_);
-        }
-        ImGui::End();
-    } else {
-        ImGui::Begin("Video Conferencing Controls", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-        if (ImGui::Button("Start Conference")) observer_->onStartConference();
-        if (ImGui::Button("Stop Conference")) observer_->onStopConference();
-        if (ImGui::Button("Enable Video")) observer_->onEnableVideo();
-        if (ImGui::Button("Disable Video")) observer_->onDisableVideo();
-        if (ImGui::Button("Mute Audio")) observer_->onMuteAudio();
-        if (ImGui::Button("Unmute Audio")) observer_->onUnmuteAudio();
-        ImGui::End();
-    }
+    
+    ImGui::Begin("Video Conferencing Controls", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    if (ImGui::Button("Start Conference")) observer_->onStartConference();
+    if (ImGui::Button("Stop Conference")) observer_->onStopConference();
+    if (ImGui::Button("Enable Video")) observer_->onEnableVideo();
+    if (ImGui::Button("Disable Video")) observer_->onDisableVideo();
+    if (ImGui::Button("Mute Audio")) observer_->onMuteAudio();
+    if (ImGui::Button("Unmute Audio")) observer_->onUnmuteAudio();
+    ImGui::End();
 
     ImGui::Render();
     int display_w, display_h;
