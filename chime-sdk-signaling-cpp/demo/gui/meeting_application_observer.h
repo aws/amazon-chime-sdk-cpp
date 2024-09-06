@@ -20,7 +20,6 @@
 #include "signaling/default_signaling_client_factory.h"
 
 #include "video_conferencing_application.h"
-#include "utils/fetch_from_serverless_demo.h"
 
 #include <iostream>
 #include <memory>
