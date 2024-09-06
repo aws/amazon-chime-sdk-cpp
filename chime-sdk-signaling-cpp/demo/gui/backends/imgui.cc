@@ -3,28 +3,33 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include <iostream>
+
 ImGuiVideoConferencingApplication::ImGuiVideoConferencingApplication(VideoConferencingApplicationObserver* observer)
-    : window(nullptr), observer(observer), running(false) {
+    : window_(nullptr), observer_(observer), running_(false) {
     initialize();
 }
 
 ImGuiVideoConferencingApplication::~ImGuiVideoConferencingApplication() {
-    if (window) {
-        glfwDestroyWindow(window);
+    if (window_) {
+        glfwDestroyWindow(window_);
+        window_ = nullptr;
     }
     glfwTerminate();
 }
 
 static void glfw_error_callback(int error, const char* description)
 {
-    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+    std::cout << "GLFW Error " << error << " description " << description << std::endl;
 }
 
 
 void ImGuiVideoConferencingApplication::initialize() {
     glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
+    if (!glfwInit()) {
+        std::cout << "glfwInit" << std::endl;
         return;
+    }
 
     // Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -50,13 +55,15 @@ void ImGuiVideoConferencingApplication::initialize() {
 #endif
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
-    if (window == nullptr)
+    window_ = glfwCreateWindow(360, 240, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+    if (window_ == nullptr) {
+        std::cout << "glfwCreateWindow" << std::endl;
         return;
-    glfwMakeContextCurrent(window);
+    }
+    glfwMakeContextCurrent(window_);
     glfwSwapInterval(1); // Enable vsync
 
-    setupImGui(window, glsl_version);
+    setupImGui(window_, glsl_version);
 }
 
 void ImGuiVideoConferencingApplication::setupImGui(GLFWwindow* window, const char* glsl_version) {
@@ -70,43 +77,57 @@ void ImGuiVideoConferencingApplication::setupImGui(GLFWwindow* window, const cha
     ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
+
+void ImGuiVideoConferencingApplication::stop() {
+    running_ = false;
+}
+
+
 void ImGuiVideoConferencingApplication::run() {
-    running = true;
-    while (running && !glfwWindowShouldClose(window)) {
+    running_ = true;
+    while (running_ && !glfwWindowShouldClose(window_)) {
         glfwPollEvents();
         renderGui();
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window_);
     }
 
     cleanupImGui();
-}
-
-void ImGuiVideoConferencingApplication::stop() {
-    running = false;
 }
 
 void ImGuiVideoConferencingApplication::renderGui() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-
-    ImGui::Begin("Video Conferencing Controls");
-    if (ImGui::Button("Start Conference")) observer->onStartConference();
-    if (ImGui::Button("Stop Conference")) observer->onStopConference();
-    if (ImGui::Button("Enable Video")) observer->onEnableVideo();
-    if (ImGui::Button("Disable Video")) observer->onDisableVideo();
-    if (ImGui::Button("Mute Audio")) observer->onMuteAudio();
-    if (ImGui::Button("Unmute Audio")) observer->onUnmuteAudio();
-    ImGui::End();
+    if (!showMeetingControls_) {
+        ImGui::Begin("Join Meeting");
+        ImGui::InputText("Serverless Demo URL", url_, sizeof(url_));
+        ImGui::InputText("Meeting Name", meetingName_, sizeof(meetingName_));
+        ImGui::InputText("Attendee Name", attendeeName_, sizeof(attendeeName_));
+        if (ImGui::Button("Start")) {
+            showMeetingControls_ = true;
+            observer_->onMeetingJoinRequested(url_, meetingName_, attendeeName_); // Assume this method initiates the conference
+        }
+        ImGui::End();
+    } else {
+        ImGui::Begin("Video Conferencing Controls");
+        if (ImGui::Button("Start Conference")) observer_->onStartConference();
+        if (ImGui::Button("Stop Conference")) observer_->onStopConference();
+        if (ImGui::Button("Enable Video")) observer_->onEnableVideo();
+        if (ImGui::Button("Disable Video")) observer_->onDisableVideo();
+        if (ImGui::Button("Mute Audio")) observer_->onMuteAudio();
+        if (ImGui::Button("Unmute Audio")) observer_->onUnmuteAudio();
+        ImGui::End();
+    }
 
     ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
     int display_w, display_h;
-    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glfwGetFramebufferSize(window_, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
+    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 std::shared_ptr<VideoConferencingTile> ImGuiVideoConferencingApplication::addRemoteVideo() {
@@ -115,6 +136,7 @@ std::shared_ptr<VideoConferencingTile> ImGuiVideoConferencingApplication::addRem
 }
 
 void ImGuiVideoConferencingApplication::cleanupImGui() {
+    std::cout << "cleanupImGui" << std::endl;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

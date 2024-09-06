@@ -16,9 +16,14 @@ public:
     std::shared_ptr<VideoConferencingTile> addRemoteVideo() override;
 
 private:
-    GLFWwindow* window;
-    VideoConferencingApplicationObserver* observer;
-    bool running;
+    GLFWwindow* window_;
+    VideoConferencingApplicationObserver* observer_;
+    bool running_;
+
+    bool showMeetingControls_ = false; // New: state to control which interface to show
+    char url_[255] = "";       // New: buffer for meeting name input
+    char meetingName_[255] = "";       // New: buffer for meeting name input
+    char attendeeName_[255] = "";      // New: buffer for attendee name input
 
     void initialize();
     void renderGui();

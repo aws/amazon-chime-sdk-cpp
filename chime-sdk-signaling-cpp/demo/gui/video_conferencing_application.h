@@ -9,6 +9,8 @@ class VideoConferencingApplicationObserver {
 public:
     virtual ~VideoConferencingApplicationObserver() {}
 
+    virtual void onMeetingJoinRequested(const std::string& meeting_name, const std::string& attendee_name) = 0;
+
     virtual void onStartConference() = 0;
     virtual void onStopConference() = 0;
     virtual void onEnableVideo() = 0;
